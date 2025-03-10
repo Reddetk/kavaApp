@@ -1,4 +1,4 @@
-// Новый синтаксис для React 18+
+
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
