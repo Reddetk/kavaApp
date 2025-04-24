@@ -1,99 +1,161 @@
-# User Service System Architecture
+I'll rewrite the README file to match the new architecture structure outlined in the document you provided. The new README will focus on the User Service microservice with its clean architecture approach.
+
+# User Service Architecture
 
 ## Overview
-This project is centered around the concept of **"Time + Covariates → Prediction → Action"**. The system gathers user behavior data, preprocesses it, segments customers using clustering methods (e.g., K-Means, DBSCAN), and trains survival models (such as Cox Proportional Hazards) for each segment. Predictions, such as time to churn or time to the next visit, are utilized to update retention and CLV metrics while personalizing marketing campaigns.
 
-## Modules
-The system is divided into several interconnected modules:
+User Service is a microservice designed to manage user profiles and update customer segments based on their behavior. It implements sophisticated analytics for user segmentation, retention prediction, and Customer Lifetime Value (CLV) calculation.
 
-### 1. Data Preprocessing Module
-- **Functions**:
-  - Data cleaning (handling outliers and missing values).
-  - Metric normalization and scaling (e.g., RFM: Recency, Frequency, Monetary).
-  - Computing additional metrics (e.g., Time Between Purchases - TBP).
-  - Generating time series for state transitions analysis.
-- **Outputs**:
-  - Aggregated metrics for RFM, TBP, and sessions.
+## Architectural Approach
 
-### 2. Segmentation Module
-- **Functions**:
-  - Clustering users using K-Means and DBSCAN.
-  - Types:
-    - RFM segmentation.
-    - Behavioral patterns segmentation.
-    - Demographic segmentation.
-    - Sensitivity to promotions segmentation.
-- **Outputs**:
-  - Labels for user segments (e.g., VIP clients, seasonal clients).
+The service follows Clean Architecture principles with these key layers:
 
-### 3. Survival Analysis Module
-- **Functions**:
-  - Predicting time until key events (e.g., churn, next visit, inactivity).
-  - Training survival models for each segment using covariates.
-  - Interpreting model coefficients to inform risks.
-- **Outputs**:
-  - Survival functions, hazard coefficients.
+- **Domain Layer**: Core business entities and business rules
+- **Application Layer**: Use cases that orchestrate business logic
+- **Infrastructure Layer**: Technical implementations of interfaces
+- **Interfaces Layer**: External system communication (HTTP, Kafka)
 
-### 4. State Transition Analyzer
-- **Functions**:
-  - Creating transition matrices using Markov chains.
-  - Updating matrices regularly based on new data.
-- **Outputs**:
-  - Probabilities for user state transitions.
+## Project Structure
 
-### 5. Retention Predictor
-- **Functions**:
-  - Calculating retention rates and churn probabilities.
-  - Combining survival analysis outputs with transition matrices.
-- **Outputs**:
-  - Expected retention metrics.
+```
+user-service/
+├── cmd/
+│   └── main.go                        # Application entry point
+├── config/
+│   └── config.yaml                    # Configuration file
+├── internal/
+│   ├── application/                   # Use Cases
+│   │   ├── clv_service.go
+│   │   ├── retention_service.go
+│   │   ├── segmentation_service.go
+│   │   └── user_service.go
+│   ├── domain/                        # Business entities and logic
+│   │   ├── entities/
+│   │   │   ├── segment.go
+│   │   │   ├── transaction.go
+│   │   │   ├── user.go
+│   │   │   └── user-metrics.go
+│   │   ├── repositories/
+│   │   │   ├── segment_repository.go
+│   │   │   ├── transaction_repository.go
+│   │   │   ├── user_metrics_repository.go
+│   │   │   └── user_repository.go
+│   │   └── services/
+│   │       ├── clv_service.go
+│   │       ├── segmentation_service.go
+│   │       ├── state_transition_service.go
+│   │       └── survival_analysis_service.go
+│   ├── infrastructure/
+│   │   └── postgres/                  # Repository implementations
+│   │       ├── cox_survival_analysis.go
+│   │       ├── kmeans_segmentation.go
+│   │       └── user_repository.go
+│   └── interfaces/                    # External interfaces
+│       ├── http/
+│       │   ├── handlers/
+│       │   │   ├── segment_handler.go
+│       │   │   └── user_handler.go
+│       │   ├── consumer.go
+│       │   └── router.go
+├── pkg/                               # Helper packages
+│   ├── logger/
+│   └── utils/
+├── test/                              # Tests
+├── Dockerfile                         # Docker build instructions
+├── go.mod                             # Go dependency manifest
+└── README.md                          # Project documentation
+```
 
-### 6. CLV Updater
-- **Functions**:
-  - Updating Customer Lifetime Value using retention predictions.
-  - Discounting future revenue based on churn forecasts.
-- **Outputs**:
-  - Adjusted CLV values.
+## Core Components
 
-### 7. API & Reporting Module
-- **Functions**:
-  - Exposing REST APIs for external systems (e.g., CRM, marketing).
-  - Generating dashboards for visualization.
-- **Outputs**:
-  - Interactive visualizations and aggregated metrics.
+### Domain Layer
 
-## Implementation Workflow
-1. **Data Collection**: Gather user profiles, transactions, and session logs.
-2. **Data Preprocessing**: Clean and normalize the collected data.
-3. **Segmentation**: Cluster users based on metrics like RFM, TBP, and behavior.
-4. **Survival Analysis**: Train segment-specific models to predict user behavior.
-5. **State Transition Analysis**: Construct transition matrices for retention updates.
-6. **Retention Prediction**: Forecast churn probabilities and retention rates.
-7. **CLV Update**: Recalculate CLV based on updated retention metrics.
-8. **Reporting & API**: Share insights via dashboards and APIs.
+The domain layer contains business entities and core business rules:
+
+- **Entities**: User, Transaction, Segment, UserMetrics
+- **Repositories**: Interfaces for data access
+- **Services**: Business logic interfaces (segmentation, survival analysis, etc.)
+
+### Application Layer
+
+The application layer implements use cases:
+
+- **UserService**: User profile management
+- **SegmentationService**: User clustering and segment assignment
+- **RetentionService**: Churn prediction and survival analysis
+- **CLVService**: Customer Lifetime Value calculation
+
+### Infrastructure Layer
+
+The infrastructure layer provides concrete implementations:
+
+- **Repository Implementations**: PostgreSQL-based data access
+- **Algorithm Implementations**: KMeans clustering, Cox survival analysis
+
+### Interfaces Layer
+
+The interfaces layer handles external communications:
+
+- **HTTP Handlers**: REST API endpoints
+- **Kafka Consumers**: Event processing for transactions
 
 ## Key Features
-- **Modular Design**: Independent modules for preprocessing, segmentation, prediction, and reporting.
-- **Scalability**: Designed for microservice architecture.
-- **Optimization**: Regular model updates and parameter tuning based on new data.
 
-## Database Structure
-- **Tables/Collections**:
-  - `Users`
-  - `Transactions`
-  - `Sessions`
-  - `Segments`
-  - `SurvivalModels`
-  - `TransitionMatrices`
+- **User Segmentation**: RFM, behavioral, demographic, and promotional segmentation
+- **Survival Analysis**: Predicting user churn and retention
+- **State Transition Analysis**: Markov chains for user behavior modeling
+- **CLV Calculation**: Dynamic lifetime value updates based on retention predictions
 
-## How to Contribute
-1. Fork this repository.
-2. Create a new branch for your feature.
-3. Submit a pull request with detailed explanations.
+## API Endpoints
+
+The service exposes RESTful endpoints:
+
+- `/api/v1/users/`: User management
+- `/api/v1/segments/`: Segment operations
+
+## Event Processing
+
+The service consumes transaction events via Kafka to:
+- Update user metrics
+- Trigger re-segmentation when necessary
+- Recalculate retention probabilities and CLV
+
+## Setup & Deployment
+
+### Prerequisites
+- Go 1.16+
+- PostgreSQL 12+
+- Kafka
+
+### Configuration
+Configure database connection, Kafka brokers, and other settings in `config/config.yaml`.
+
+### Running the Service
+```bash
+# Build
+go build -o user-service ./cmd/main.go
+
+# Run
+./user-service
+
+# Using Docker
+docker build -t user-service .
+docker run -p 8080:8080 user-service
+```
+
+## Development Guidelines
+
+1. Follow Clean Architecture principles
+2. Keep business logic in domain and application layers
+3. Infrastructure and interfaces should depend on inner layers, not vice versa
+4. Use dependency injection for service composition
+
+## Contribution
+
+1. Fork this repository
+2. Create a feature branch
+3. Submit a pull request with detailed descriptions
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
 
----
-
-Feel free to adapt it to suit your requirements or let me know if you'd like further refinements!
+This project is licensed under the MIT License.
