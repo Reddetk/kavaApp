@@ -1,0 +1,63 @@
+server:
+  port: "8080"
+  read_timeout: 15
+  write_timeout: 15
+
+logger:
+  level: "info"
+  format: "json"
+
+database:
+  dsn: "postgres://user:password@localhost:5432/user_service?sslmode=disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 30
+
+data_preprocessing:
+  data_cleaner:
+    outlier_method: "IQR"
+    missing_values_strategy: "median"
+  metric_calculator:
+    tbp:
+      window_days: 30
+    rfm:
+      recency_weight: 0.5
+      frequency_weight: 0.3
+      monetary_weight: 0.2
+
+segmentation:
+  rfm_clustering:
+    algorithm: "KMeans"
+    clusters: 5
+    max_iterations: 300
+    random_seed: 42
+  behavior_clustering:
+    algorithm: "DBSCAN"
+    eps: 0.5
+    min_samples: 5
+
+survival_analysis:
+  survival_model:
+    type: "CoxPH"
+    parameters:
+      regularization: 0.01
+      max_iter: 1000
+
+state_transition:
+  transition_matrix:
+    smoothing: 0.1
+    threshold: 0.05
+
+retention_prediction:
+  retention_calculator:
+    model: "LogisticRegression"
+    threshold: 0.5
+
+clv_updater:
+  clv_calculator:
+    discount_rate: 0.1
+    forecast_period: 12
+
+reporting_api:
+  port: "9090"
+  base_path: "/api/v1"

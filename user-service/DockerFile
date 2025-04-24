@@ -1,0 +1,19 @@
+FROM golang:alpine
+
+# Создаем рабочую директорию для проекта
+RUN mkdir /files
+
+# Копируем исходные файлы в контейнер
+COPY cmd/main.go /files/main.go
+COPY cmd/mGo.log /files/mGo.log
+COPY cmd/go.mod /files/go.mod
+
+# Устанавливаем рабочую директорию
+WORKDIR /files
+
+# Скачиваем зависимости и собираем Go-приложение
+RUN go mod tidy
+RUN go build -o /files/main main.go
+
+# Настраиваем точку входа для контейнера
+ENTRYPOINT ["/files/main"]
