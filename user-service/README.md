@@ -1,5 +1,3 @@
-I'll rewrite the README file to match the new architecture structure outlined in the document you provided. The new README will focus on the User Service microservice with its clean architecture approach.
-
 # User Service Architecture
 
 ## Overview
