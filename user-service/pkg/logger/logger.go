@@ -6,26 +6,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Logger представляет обёртку над logrus.Logger для централизованного логирования.
+// Logger represents a wrapper over logrus.Logger for centralized logging.
 type Logger struct {
 	log *logrus.Logger
 }
 
-// NewLogger создаёт новый экземпляр логгера и настраивает его по переданному уровню логирования.
+// NewLogger creates a new logger instance and configures it according to the provided logging level.
 func NewLogger(level string) *Logger {
 	l := logrus.New()
 
-	// Вывод логов в стандартный вывод.
+	// Output logs to standard output.
 	l.Out = os.Stdout
 
-	// Устанавливаем уровень логирования
+	// Set logging level
 	parsedLevel, err := logrus.ParseLevel(level)
 	if err != nil {
 		parsedLevel = logrus.InfoLevel
 	}
 	l.SetLevel(parsedLevel)
 
-	// Настройка формата логов (можно изменить на JSON или другой, если требуется)
+	// Configure log format (can be changed to JSON or other if needed)
 	l.Formatter = &logrus.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02 15:04:05",
@@ -34,32 +34,32 @@ func NewLogger(level string) *Logger {
 	return &Logger{l}
 }
 
-// Info записывает информационное сообщение.
+// Info writes an informational message.
 func (l *Logger) Info(args ...interface{}) {
 	l.log.Info(args...)
 }
 
-// Infof записывает информационное сообщение с форматированием.
+// Infof writes a formatted informational message.
 func (l *Logger) Infof(format string, args ...interface{}) {
 	l.log.Infof(format, args...)
 }
 
-// Debug записывает отладочное сообщение.
+// Debug writes a debug message.
 func (l *Logger) Debug(args ...interface{}) {
 	l.log.Debug(args...)
 }
 
-// Debugf записывает отладочное сообщение с форматированием.
+// Debugf writes a formatted debug message.
 func (l *Logger) Debugf(format string, args ...interface{}) {
 	l.log.Debugf(format, args...)
 }
 
-// Error записывает сообщение об ошибке.
+// Error writes an error message.
 func (l *Logger) Error(args ...interface{}) {
 	l.log.Error(args...)
 }
 
-// Errorf записывает сообщение об ошибке с форматированием.
+// Errorf writes a formatted error message.
 func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.log.Errorf(format, args...)
 }

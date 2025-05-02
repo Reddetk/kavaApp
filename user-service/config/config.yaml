@@ -8,10 +8,11 @@ logger:
   format: "json"
 
 database:
-  dsn: "postgres://user:password@localhost:5432/user_service?sslmode=disable"
+  dsn: "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: 30
+
 
 data_preprocessing:
   data_cleaner:
