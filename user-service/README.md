@@ -45,8 +45,9 @@ user-service/
 │   │       └── survival_analysis_service.go
 │   ├── infrastructure/
 │   │   └── postgres/                  # Repository implementations
-│   │       ├── cox_survival_analysis.go
-│   │       ├── kmeans_segmentation.go
+│   │       ├── transaction_repository.go
+│   │       ├── segment_repository.go
+│   │       ├── user_metrics_repository.go
 │   │       └── user_repository.go
 │   └── interfaces/                    # External interfaces
 │       ├── http/
