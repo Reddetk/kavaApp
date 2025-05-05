@@ -3,12 +3,19 @@ package config
 import (
 	"os"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
 // LoadConfig reads the YAML file and unmarshals it into the Config struct.
 // It also loads database configuration from environment variables if present.
 func LoadConfig(path string) (*Config, error) {
+
+	// load vars in .env
+	if err := godotenv.Load(); err != nil {
+		return nil, err
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

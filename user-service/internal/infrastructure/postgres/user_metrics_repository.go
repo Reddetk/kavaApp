@@ -18,13 +18,17 @@ func NewUserMetricsRepository(db *sql.DB) repositories.UserMetricsRepository {
 	return &UserMetricsRepository{db: db}
 }
 
+// Get retrieves user metrics from the database for a given user ID
 func (r *UserMetricsRepository) Get(ctx context.Context, userID uuid.UUID) (*entities.UserMetrics, error) {
+	// SQL query to select all metrics fields for a specific user
 	query := `
         SELECT user_id, recency, frequency, monetary, tbp, avg_check, last_segment_id
         FROM user_metrics
         WHERE user_id = $1`
 
+	// Initialize metrics struct to store the result
 	var metrics entities.UserMetrics
+	// Execute query and scan results into metrics struct
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
 		&metrics.UserID,
 		&metrics.Recency,
@@ -35,13 +39,16 @@ func (r *UserMetricsRepository) Get(ctx context.Context, userID uuid.UUID) (*ent
 		&metrics.LastSegmentID,
 	)
 
+	// Return nil if no metrics found for user
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	// Return error if query failed
 	if err != nil {
 		return nil, err
 	}
 
+	// Return pointer to metrics struct
 	return &metrics, nil
 }
 

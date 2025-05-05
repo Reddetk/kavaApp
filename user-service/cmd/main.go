@@ -2,20 +2,22 @@
 package main
 
 import (
-	_ "context"
+	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	_ "net/http"
 	_ "os"
 	_ "os/signal"
 	_ "syscall"
-	_ "time"
+	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 
 	"user-service/config"
 	_ "user-service/internal/application"
-	_ "user-service/internal/infrastructure/postgres"
+	"user-service/internal/infrastructure/postgres"
 	_ "user-service/internal/infrastructure/services"
 
 	// httpInterface "user-service/internal/interfaces/http"
@@ -26,7 +28,7 @@ import (
 
 func main() {
 	//	Загрузка конфигурации из файла config.yaml
-	cfg, err := config.LoadConfig("config.yaml")
+	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatalf("Ошибка загрузки конфигурации: %v", err)
 	}
@@ -41,9 +43,42 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
+	userRepo := postgres.NewUserRepository(db)
+	// Создаем контекст с таймаутом в 5 секунд
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	// // Инициализация репозиториев
-	// userRepo := postgres.NewUserRepository(db)
+	// Преобразуем строку в UUID
+	userID, err := uuid.Parse("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15")
+	if err != nil {
+		logg.Error("Ошибка при парсинге UUID:", err)
+		return
+	}
+
+	// Получаем пользователя по ID
+	user, err := userRepo.Get(ctx, userID)
+	if err != nil {
+		logg.Error("Ошибка при получении пользователя:", err)
+		return
+	}
+
+	// Проверяем, найден ли пользователь
+	if user == nil {
+		logg.Info("Пользователь с ID a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15 не найден")
+		return
+	}
+
+	// Выводим информацию о пользователе
+	logg.Info("Информация о пользователе:")
+	logg.Info(fmt.Sprintf("ID: %s", user.ID))
+	logg.Info(fmt.Sprintf("Email: %s", user.Email))
+	logg.Info(fmt.Sprintf("Телефон: %s", user.Phone))
+	logg.Info(fmt.Sprintf("Возраст: %d", user.Age))
+	logg.Info(fmt.Sprintf("Пол: %s", user.Gender))
+	logg.Info(fmt.Sprintf("Город: %s", user.City))
+	logg.Info(fmt.Sprintf("Дата регистрации: %s", user.RegistrationDate.Format(time.RFC3339)))
+	logg.Info(fmt.Sprintf("Последняя активность: %s", user.LastActivity.Format(time.RFC3339)))
+
 	// transactionRepo := postgres.NewTransactionRepository(db)
 	// segmentRepo := postgres.NewSegmentRepository(db)
 	// metricsRepo := postgres.NewUserMetricsRepository(db)
