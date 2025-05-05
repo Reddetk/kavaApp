@@ -45,6 +45,25 @@ func (r *UserMetricsRepository) Get(ctx context.Context, userID uuid.UUID) (*ent
 	return &metrics, nil
 }
 
+func (r *UserMetricsRepository) Create(ctx context.Context, metrics *entities.UserMetrics) error {
+	query := `
+        INSERT INTO user_metrics (
+            user_id, recency, frequency, monetary, tbp, avg_check, last_segment_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	_, err := r.db.ExecContext(ctx, query,
+		metrics.UserID,
+		metrics.Recency,
+		metrics.Frequency,
+		metrics.Monetary,
+		metrics.TBP,
+		metrics.AvgCheck,
+		metrics.LastSegmentID,
+	)
+
+	return err
+}
+
 func (r *UserMetricsRepository) Update(ctx context.Context, metrics *entities.UserMetrics) error {
 	query := `
         INSERT INTO user_metrics (

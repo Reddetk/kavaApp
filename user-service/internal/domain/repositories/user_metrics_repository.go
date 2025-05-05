@@ -10,6 +10,7 @@ import (
 
 type UserMetricsRepository interface {
 	Get(ctx context.Context, userID uuid.UUID) (*entities.UserMetrics, error)
+	Create(ctx context.Context, metrics *entities.UserMetrics) error
 	Update(ctx context.Context, metrics *entities.UserMetrics) error
 	CalculateMetrics(ctx context.Context, userID uuid.UUID) (*entities.UserMetrics, error)
 }

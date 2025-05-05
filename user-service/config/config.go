@@ -13,21 +13,14 @@ func LoadConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
 
-	// Override database config with environment variables if present
-	if dbUser := os.Getenv("DB_USER"); dbUser != "" {
-		dbPassword := os.Getenv("DB_PASSWORD")
-		dbHost := os.Getenv("DB_HOST")
-		dbPort := os.Getenv("DB_PORT")
-		dbName := os.Getenv("DB_NAME")
-
-		cfg.Database.DSN = "postgresql://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName
-	}
-
+	// Expand environment variables in the DSN string from the YAML file.
+	cfg.Database.DSN = os.ExpandEnv(cfg.Database.DSN)
 	return &cfg, nil
 }
 
@@ -100,6 +93,7 @@ type RFMConfig struct {
 type SegmentationConfig struct {
 	RFMClustering      ClusteringConfig `yaml:"rfm_clustering"`
 	BehaviorClustering ClusteringConfig `yaml:"behavior_clustering"`
+	BatchSize          int              `yaml:"segmentation_batch_size"`
 }
 
 // ClusteringConfig can be reused for different clustering methods.

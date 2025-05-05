@@ -22,13 +22,32 @@ func NewUserService(ur repositories.UserRepository, mr repositories.UserMetricsR
 }
 
 func (s *UserService) GetUser(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-	// Implementation
+	user, err := s.userRepo.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *entities.User) error {
-	// Implementation
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return err
+	}
+
+	// Create initial metrics for new user
+	metrics := &entities.UserMetrics{
+		UserID: user.ID,
+	}
+	if err := s.metricsRepo.Create(ctx, metrics); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, user *entities.User) error {
-	// Implementation
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return err
+	}
+	return nil
 }

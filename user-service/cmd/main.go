@@ -25,8 +25,8 @@ import (
 )
 
 func main() {
-	//	Загрузка конфигурации из файла config/config.yaml
-	cfg, err := config.LoadConfig("config/config.yaml")
+	//	Загрузка конфигурации из файла config.yaml
+	cfg, err := config.LoadConfig("config.yaml")
 	if err != nil {
 		log.Fatalf("Ошибка загрузки конфигурации: %v", err)
 	}
@@ -36,7 +36,7 @@ func main() {
 	logg.Info("Логгер успешно инициализирован")
 
 	// Инициализация базы данных
-	db, err := sql.Open("postgres", "postgres://username:password@localhost:5432/user_service?sslmode=disable")
+	db, err := sql.Open("postgres", cfg.Database.DSN)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

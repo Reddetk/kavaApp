@@ -27,6 +27,7 @@ data_preprocessing:
       monetary_weight: 0.2
 
 segmentation:
+  segmentation_batch_size: 500
   rfm_clustering:
     algorithm: "KMeans"
     clusters: 5

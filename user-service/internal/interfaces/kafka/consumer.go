@@ -27,5 +27,6 @@ func NewTransactionConsumer(brokers []string, topic string, us *application.User
 }
 
 func (c *TransactionConsumer) Start(ctx context.Context) error {
-	// Implementation
+	//implementation
+	return nil
 }

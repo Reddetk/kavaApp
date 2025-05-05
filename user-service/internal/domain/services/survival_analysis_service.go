@@ -1,7 +1,11 @@
 // internal/domain/services/survival_analysis_service.go
 package services
 
-import "user-service/internal/domain/entities"
+import (
+	"user-service/internal/domain/entities"
+
+	"github.com/google/uuid"
+)
 
 type SurvivalAnalysisService interface {
 	BuildCoxModel(segment entities.Segment, users []entities.UserMetrics) error
