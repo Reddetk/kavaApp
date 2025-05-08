@@ -4,7 +4,7 @@ server:
   write_timeout: 15
 
 logger:
-  level: "info"
+  level: "CMD"
   format: "json"
 
 database:
