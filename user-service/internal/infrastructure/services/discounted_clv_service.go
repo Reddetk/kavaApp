@@ -2,11 +2,13 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"time"
 	"user-service/internal/domain/entities"
+	"user-service/internal/domain/repositories"
 	"user-service/internal/domain/services"
 
 	"github.com/google/uuid"
@@ -20,14 +22,20 @@ type DiscountedCLVService struct {
 	forecastPeriod int
 	// Хранилище исторических данных CLV
 	clvHistory map[uuid.UUID][]entities.CLVDataPoint
+	// Репозиторий пользователей
+	userRepository repositories.UserRepository
+	// Репозиторий заказов
+	orderRepository repositories.TransactionRepository
 }
 
 // NewDiscountedCLVService creates a new instance of DiscountedCLVService
-func NewDiscountedCLVService() services.CLVService {
+func NewDiscountedCLVService(userRepo repositories.UserRepository, orderRepo repositories.TransactionRepository) services.CLVService {
 	return &DiscountedCLVService{
-		discountRate:   0.1,
-		forecastPeriod: 12,
-		clvHistory:     make(map[uuid.UUID][]entities.CLVDataPoint),
+		discountRate:    0.1,
+		forecastPeriod:  12,
+		clvHistory:      make(map[uuid.UUID][]entities.CLVDataPoint),
+		userRepository:  userRepo,
+		orderRepository: orderRepo,
 	}
 }
 
@@ -65,13 +73,43 @@ func (s *DiscountedCLVService) CalculateCLV(userID uuid.UUID, retentionRate floa
 
 // UpdateCLV updates the CLV for a specific user
 func (s *DiscountedCLVService) UpdateCLV(userID uuid.UUID) (float64, error) {
-	// В реальной реализации здесь будет логика получения данных пользователя
-	// и вызов CalculateCLV с актуальными параметрами
+	ctx := context.Background()
 
-	// Для демонстрации используем фиктивные значения
-	retentionRate := 0.8 // 80% вероятность удержания
-	avgCheck := 100.0    // Средний чек 100 единиц
+	// Получаем данные пользователя из репозитория
+	user, err := s.userRepository.Get(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get user data: %w", err)
+	}
 
+	// Получаем историю транзакций пользователя
+	transactions, err := s.orderRepository.GetByUserID(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get user transactions: %w", err)
+	}
+
+	// Рассчитываем коэффициент удержания на основе истории транзакций
+	// Преобразуем []*entities.Segment в []entities.Segment
+	transactionsVal := make([]entities.Transaction, len(transactions))
+	for i, s := range transactions {
+		if s != nil {
+			transactionsVal[i] = *s
+		}
+	}
+	retentionRate := s.calculateRetentionRate(transactionsVal)
+
+	// Рассчитываем средний чек на основе истории транзакций
+	avgCheck := s.calculateAverageCheck(transactionsVal)
+
+	// Если у пользователя нет истории транзакций, используем значения по умолчанию
+	if len(transactions) == 0 {
+		retentionRate = 0.5 // Значение по умолчанию для новых пользователей
+		avgCheck = 50.0     // Значение по умолчанию для новых пользователей
+	}
+
+	// Применяем модификаторы на основе данных пользователя
+	retentionRate = s.applyUserFactors(*user, retentionRate)
+
+	// Вызываем метод расчета CLV с актуальными параметрами
 	return s.CalculateCLV(userID, retentionRate, avgCheck)
 }
 
@@ -161,4 +199,97 @@ func (s *DiscountedCLVService) saveHistoricalDataPoint(userID uuid.UUID, value f
 	}
 
 	s.clvHistory[userID] = append(s.clvHistory[userID], dataPoint)
+}
+
+// calculateRetentionRate вычисляет коэффициент удержания на основе истории заказов
+func (s *DiscountedCLVService) calculateRetentionRate(orders []entities.Transaction) float64 {
+	if len(orders) < 2 {
+		return 0.5 // Значение по умолчанию, если недостаточно данных
+	}
+
+	// Сортируем заказы по дате (предполагается, что в entities.Order есть поле CreatedAt)
+	// sort.Slice(orders, func(i, j int) bool {
+	//     return orders[i].CreatedAt.Before(orders[j].CreatedAt)
+	// })
+
+	// Вычисляем среднее время между заказами
+	var totalGaps int
+	var totalDays float64
+
+	for i := 1; i < len(orders); i++ {
+		// Разница в днях между последовательными заказами
+		// daysBetween := orders[i].CreatedAt.Sub(orders[i-1].CreatedAt).Hours() / 24
+		daysBetween := 30.0 // Временно используем фиксированное значение
+
+		if daysBetween <= 90 { // Учитываем только заказы в пределах 90 дней
+			totalGaps++
+			totalDays += daysBetween
+		}
+	}
+
+	if totalGaps == 0 {
+		return 0.4 // Низкий коэффициент удержания, если большие промежутки между заказами
+	}
+
+	// Вычисляем средний промежуток между заказами в днях
+	avgGap := totalDays / float64(totalGaps)
+
+	// Преобразуем в коэффициент удержания (чем меньше промежуток, тем выше удержание)
+	// Формула: 1 - (avgGap / 90), ограниченная диапазоном [0.3, 0.95]
+	retentionRate := 1 - (avgGap / 90)
+
+	// Ограничиваем значение
+	if retentionRate < 0.3 {
+		retentionRate = 0.3
+	} else if retentionRate > 0.95 {
+		retentionRate = 0.95
+	}
+
+	return retentionRate
+}
+
+// calculateAverageCheck вычисляет средний чек на основе истории заказов
+func (s *DiscountedCLVService) calculateAverageCheck(orders []entities.Transaction) float64 {
+	if len(orders) == 0 {
+		return 50.0 // Значение по умолчанию, если нет заказов
+	}
+
+	var totalAmount float64
+	for _, order := range orders {
+		totalAmount += order.Amount
+		//totalAmount += 100.0 // Временно используем фиксированное значение
+	}
+
+	return totalAmount / float64(len(orders))
+}
+
+// applyUserFactors корректирует коэффициент удержания на основе данных пользователя
+func (s *DiscountedCLVService) applyUserFactors(user entities.User, baseRate float64) float64 {
+	adjustedRate := baseRate
+
+	// Пример: корректировка на основе возраста аккаунта
+	// accountAge := time.Since(user.CreatedAt).Hours() / 24 / 365 // в годах
+	accountAge := 1.0 // Временно используем фиксированное значение
+
+	if accountAge < 1 {
+		// Новые пользователи имеют более низкий коэффициент удержания
+		adjustedRate *= 0.9
+	} else if accountAge > 3 {
+		// Давние пользователи имеют более высокий коэффициент удержания
+		adjustedRate *= 1.1
+	}
+
+	// Пример: корректировка на основе активности в программе лояльности
+	// if user.LoyaltyLevel > 0 {
+	//     adjustedRate *= (1 + float64(user.LoyaltyLevel) * 0.05)
+	// }
+
+	// Ограничиваем итоговое значение
+	if adjustedRate < 0.3 {
+		adjustedRate = 0.3
+	} else if adjustedRate > 0.95 {
+		adjustedRate = 0.95
+	}
+
+	return adjustedRate
 }

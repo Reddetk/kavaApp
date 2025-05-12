@@ -75,7 +75,7 @@ func main() {
 	segmentationSvc := services.NewKMeansSegmentation(cfg.Segmentation.RFMClustering.Clusters)
 	survivalSvc := services.NewCoxSurvivalAnalysis()
 	transitionSvc := services.NewMarkovTransitionService()
-	clvSvc := services.NewDiscountedCLVService()
+	clvSvc := services.NewDiscountedCLVService(userRepo, transactionRepo)
 	logg.Info("Services initialized successfully")
 
 	// Инициализация use cases
