@@ -36,6 +36,7 @@ type Config struct {
 	Server              ServerConfig              `yaml:"server"`
 	Logger              LoggerConfig              `yaml:"logger"`
 	Database            DatabaseConfig            `yaml:"database"`
+	Kafka               KafkaConfig               `yaml:"kafka"`
 	DataPreprocessing   DataPreprocessingConfig   `yaml:"data_preprocessing"`
 	Segmentation        SegmentationConfig        `yaml:"segmentation"`
 	SurvivalAnalysis    SurvivalAnalysisConfig    `yaml:"survival_analysis"`
@@ -47,9 +48,11 @@ type Config struct {
 
 // ServerConfig holds the server-related settings.
 type ServerConfig struct {
-	Port         string `yaml:"port"`
-	ReadTimeout  int    `yaml:"read_timeout"`
-	WriteTimeout int    `yaml:"write_timeout"`
+	Address             string `yaml:"address"`
+	Port                string `yaml:"port"`
+	ReadTimeoutSeconds  int    `yaml:"read_timeout_seconds"`
+	WriteTimeoutSeconds int    `yaml:"write_timeout_seconds"`
+	IdleTimeoutSeconds  int    `yaml:"idle_timeout_seconds"`
 }
 
 // LoggerConfig holds logger settings.
@@ -60,10 +63,17 @@ type LoggerConfig struct {
 
 // DatabaseConfig holds the DB connection parameters.
 type DatabaseConfig struct {
-	DSN             string `yaml:"dsn"`
-	MaxOpenConns    int    `yaml:"max_open_conns"`
-	MaxIdleConns    int    `yaml:"max_idle_conns"`
-	ConnMaxLifetime int    `yaml:"conn_max_lifetime"` // in minutes
+	DSN                    string `yaml:"dsn"`
+	MaxOpenConns           int    `yaml:"max_open_conns"`
+	MaxIdleConns           int    `yaml:"max_idle_conns"`
+	ConnMaxLifetimeMinutes int    `yaml:"conn_max_lifetime_minutes"`
+}
+
+// KafkaConfig holds Kafka connection parameters
+type KafkaConfig struct {
+	Brokers []string `yaml:"brokers"`
+	Topic   string   `yaml:"topic"`
+	GroupID string   `yaml:"group_id"`
 }
 
 // DataPreprocessingConfig holds settings specific to data preprocessing.

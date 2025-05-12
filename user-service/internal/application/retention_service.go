@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"log"
 	"user-service/internal/domain/repositories"
 	"user-service/internal/domain/services"
 
@@ -66,4 +67,40 @@ func (s *RetentionService) PredictTimeToEvent(ctx context.Context, userID uuid.U
 	}
 
 	return estimatedTime, nil
+}
+
+// RecalculateUserMetrics пересчитывает метрики пользователя на основе его транзакций
+func (s *RetentionService) RecalculateUserMetrics(ctx context.Context, userID uuid.UUID) error {
+	// Используем метод CalculateMetrics из репозитория метрик
+	_, err := s.metricsRepo.CalculateMetrics(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateChurnProbability обновляет вероятность оттока пользователя
+func (s *RetentionService) UpdateChurnProbability(ctx context.Context, userID uuid.UUID) error {
+	// Получаем метрики пользователя
+	metrics, err := s.metricsRepo.Get(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if metrics == nil {
+		return errors.New("user metrics not found")
+	}
+
+	// Рассчитываем вероятность оттока
+	probability, err := s.survivalSvc.PredictChurnProbability(userID, *metrics)
+	if err != nil {
+		return err
+	}
+
+	// Обновляем состояние пользователя в модели Маркова
+	if err := s.transitionSvc.UpdateUserState(userID, probability); err != nil {
+		log.Printf("Warning: failed to update user state: %v", err)
+		// Не возвращаем ошибку, так как это некритичная операция
+	}
+
+	return nil
 }

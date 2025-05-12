@@ -28,16 +28,14 @@ type CLVService struct {
 func NewCLVService(
 	ur repositories.UserRepository,
 	mr repositories.UserMetricsRepository,
-	sr repositories.SegmentRepository,
-	cs services.CLVService,
+	cc services.CLVService,
 	rs *RetentionService,
-	logger *zap.Logger,
 ) *CLVService {
+	logger, _ := zap.NewProduction()
 	return &CLVService{
 		userRepo:      ur,
 		metricsRepo:   mr,
-		segmentRepo:   sr,
-		clvCalculator: cs,
+		clvCalculator: cc,
 		retentionSvc:  rs,
 		logger:        logger.With(zap.String("service", "CLVService")),
 	}
@@ -63,22 +61,11 @@ func (s *CLVService) CalculateUserCLV(ctx context.Context, userID uuid.UUID) (fl
 	// Расчет коэффициента удержания
 	retentionRate := math.Max(0, 1-math.Min(churnProb, 1))
 
-	// Получение информации о сегменте пользователя
-	segment, err := s.segmentRepo.Get(ctx, metrics.LastSegmentID)
-	if err != nil {
-		s.logger.Warn("failed to get user segment, using default values",
-			zap.String("userID", userID.String()),
-			zap.Error(err))
-	}
-
-	// Корректировка среднего чека в зависимости от сегмента
-	adjustedAvgCheck := s.adjustAvgCheckBySegment(metrics.AvgCheck, segment)
-
 	// Вызов доменного сервиса для расчета CLV
 	clv, err := s.clvCalculator.CalculateCLV(
 		userID,
 		retentionRate,
-		adjustedAvgCheck,
+		metrics.AvgCheck,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("CLV calculation failed: %w", err)
@@ -123,6 +110,102 @@ func (s *CLVService) BatchUpdateCLV(ctx context.Context, batchSize int) error {
 	return nil
 }
 
+// EstimateCLV оценивает CLV для конкретного сценария
+func (s *CLVService) EstimateCLV(ctx context.Context, userID uuid.UUID, scenario string) (float64, error) {
+	// Получение метрик пользователя
+	metrics, err := s.getOrCalculateMetrics(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get user metrics: %w", err)
+	}
+
+	// Прогнозирование вероятности оттока
+	churnProb, err := s.retentionSvc.PredictChurnProbability(ctx, userID)
+	if err != nil {
+		s.logger.Warn("failed to predict churn probability, using default",
+			zap.String("userID", userID.String()),
+			zap.Error(err))
+		churnProb = 0.2 // Значение по умолчанию
+	}
+
+	// Расчет коэффициента удержания с учетом сценария
+	var retentionRate float64
+	var avgCheck float64
+
+	switch scenario {
+	case "optimistic":
+		retentionRate = math.Max(0, 1-math.Min(churnProb*0.8, 1)) // Улучшенное удержание
+		avgCheck = metrics.AvgCheck * 1.2                         // Увеличенный средний чек
+	case "pessimistic":
+		retentionRate = math.Max(0, 1-math.Min(churnProb*1.2, 1)) // Ухудшенное удержание
+		avgCheck = metrics.AvgCheck * 0.8                         // Уменьшенный средний чек
+	default: // "default" или любой другой сценарий
+		retentionRate = math.Max(0, 1-math.Min(churnProb, 1))
+		avgCheck = metrics.AvgCheck
+	}
+
+	// Вызов доменного сервиса для расчета CLV
+	clv, err := s.clvCalculator.EstimateCLV(userID, scenario)
+	if err != nil {
+		// Если метод EstimateCLV не реализован, используем CalculateCLV
+		clv, err = s.clvCalculator.CalculateCLV(userID, retentionRate, avgCheck)
+		if err != nil {
+			return 0, fmt.Errorf("CLV estimation failed: %w", err)
+		}
+	}
+
+	return clv, nil
+}
+
+// GetHistoricalCLV возвращает исторические данные CLV для пользователя
+func (s *CLVService) GetHistoricalCLV(ctx context.Context, userID uuid.UUID, periodMonths int) ([]entities.CLVDataPoint, error) {
+	// Проверяем существование пользователя
+	user, err := s.userRepo.Get(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found: %s", userID)
+	}
+
+	// Вызов доменного сервиса для получения исторических данных
+	history, err := s.clvCalculator.GetHistoricalCLV(userID, periodMonths)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get historical CLV: %w", err)
+	}
+
+	// Если история пуста, создаем одну точку с текущим значением CLV
+	if len(history) == 0 {
+		metrics, err := s.metricsRepo.Get(ctx, userID)
+		if err != nil || metrics == nil {
+			// Если метрики недоступны, рассчитываем CLV
+			clv, err := s.CalculateUserCLV(ctx, userID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to calculate current CLV: %w", err)
+			}
+
+			// Создаем одну историческую точку
+			history = append(history, entities.CLVDataPoint{
+				UserID:    userID,
+				Date:      time.Now(),
+				Value:     clv,
+				Scenario:  "default",
+				Algorithm: "DiscountedCashFlow",
+			})
+		} else {
+			// Используем значение CLV из метрик
+			history = append(history, entities.CLVDataPoint{
+				UserID:    userID,
+				Date:      metrics.LastCLVUpdate,
+				Value:     metrics.CLV,
+				Scenario:  "default",
+				Algorithm: "DiscountedCashFlow",
+			})
+		}
+	}
+
+	return history, nil
+}
+
 // getOrCalculateMetrics получает или рассчитывает метрики пользователя
 func (s *CLVService) getOrCalculateMetrics(ctx context.Context, userID uuid.UUID) (*entities.UserMetrics, error) {
 	metrics, err := s.metricsRepo.Get(ctx, userID)
@@ -138,26 +221,18 @@ func (s *CLVService) getOrCalculateMetrics(ctx context.Context, userID uuid.UUID
 		return nil, fmt.Errorf("metrics calculation failed: %w", err)
 	}
 
-	if err := s.metricsRepo.Create(ctx, metrics); err != nil {
+	if metrics.CLV == 0 {
+		// Если CLV не рассчитан, устанавливаем начальное значение
+		metrics.CLV = metrics.AvgCheck * 12 // Простая оценка: средний чек * 12 месяцев
+	}
+
+	if err := s.metricsRepo.Update(ctx, metrics); err != nil {
 		s.logger.Warn("failed to save calculated metrics",
 			zap.String("userID", userID.String()),
 			zap.Error(err))
 	}
 
 	return metrics, nil
-}
-
-// adjustAvgCheckBySegment корректирует средний чек по сегменту
-func (s *CLVService) adjustAvgCheckBySegment(avgCheck float64, segment *entities.Segment) float64 {
-	if segment == nil {
-		return avgCheck
-	}
-
-	// Логика корректировки на основе данных сегмента
-	if multiplier, ok := segment.CentroidData["avg_check_multiplier"].(float64); ok {
-		return avgCheck * multiplier
-	}
-	return avgCheck
 }
 
 // updateUserCLV обновляет значение CLV пользователя

@@ -19,6 +19,10 @@ func NewTransactionRepository(db *sql.DB) repositories.TransactionRepository {
 	return &TransactionRepository{db: db}
 }
 
+func (r *TransactionRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
 // GetByPeriod implements repositories.TransactionRepository.
 func (r *TransactionRepository) GetByPeriod(ctx context.Context, start time.Time, end time.Time) ([]*entities.Transaction, error) {
 	query := `SELECT id, user_id, amount, timestamp, category, discount_applied 

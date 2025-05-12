@@ -9,8 +9,8 @@ import (
 func SetupRouter(
 	userHandler *handlers.UserHandler,
 	segmentHandler *handlers.SegmentHandler,
-	retentionHandler *handlers.RetentionHandler,
 	clvHandler *handlers.CLVHandler,
+	retentionHandler *handlers.RetentionHandler,
 ) *gin.Engine {
 	router := gin.Default()
 
@@ -49,6 +49,8 @@ func SetupRouter(
 		{
 			clv.GET("/:id", clvHandler.CalculateUserCLV)
 			clv.POST("/update", clvHandler.BatchUpdateCLV)
+			clv.GET("/:id/estimate", clvHandler.EstimateCLV)
+			clv.GET("/:id/history", clvHandler.GetHistoricalCLV)
 		}
 	}
 

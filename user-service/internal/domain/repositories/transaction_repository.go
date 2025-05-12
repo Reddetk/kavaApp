@@ -13,4 +13,5 @@ type TransactionRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Transaction, error)
 	GetByPeriod(ctx context.Context, start, end time.Time) ([]*entities.Transaction, error)
 	Create(ctx context.Context, transaction *entities.Transaction) error
+	Ping(ctx context.Context) error
 }

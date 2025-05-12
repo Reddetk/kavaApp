@@ -13,4 +13,5 @@ type UserMetricsRepository interface {
 	Create(ctx context.Context, metrics *entities.UserMetrics) error
 	Update(ctx context.Context, metrics *entities.UserMetrics) error
 	CalculateMetrics(ctx context.Context, userID uuid.UUID) (*entities.UserMetrics, error)
+	Ping(ctx context.Context) error
 }

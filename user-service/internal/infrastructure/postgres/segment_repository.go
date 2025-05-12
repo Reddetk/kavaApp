@@ -18,6 +18,10 @@ func NewSegmentRepository(db *sql.DB) repositories.SegmentRepository {
 	return &SegmentRepository{db: db}
 }
 
+func (r *SegmentRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
 func (r *SegmentRepository) Create(ctx context.Context, s *entities.Segment) error {
 	centroidData, err := json.Marshal(s.CentroidData)
 	if err != nil {

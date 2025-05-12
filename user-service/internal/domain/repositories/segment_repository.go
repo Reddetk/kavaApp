@@ -13,4 +13,5 @@ type SegmentRepository interface {
 	Create(ctx context.Context, segment *entities.Segment) error
 	Update(ctx context.Context, segment *entities.Segment) error
 	GetByType(ctx context.Context, segmentType string) ([]*entities.Segment, error)
+	Ping(ctx context.Context) error
 }

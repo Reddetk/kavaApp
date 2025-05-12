@@ -10,4 +10,5 @@ import (
 type StateTransitionService interface {
 	BuildTransitionMatrix(segment entities.Segment, transactions []entities.Transaction) (map[string]map[string]float64, error)
 	PredictNextState(userID uuid.UUID, currentState string) (string, float64, error)
+	UpdateUserState(userID uuid.UUID, churnProbability float64) error
 }

@@ -18,6 +18,10 @@ func NewUserRepository(db *sql.DB) repositories.UserRepository {
 	return &UserRepository{db: db}
 }
 
+func (r *UserRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
 func (r *UserRepository) Create(ctx context.Context, user *entities.User) error {
 	query := `INSERT INTO users (email, phone, age, gender, city) VALUES ($1, $2, $3, $4, $5) RETURNING id, registration_date, last_activity`
 	return r.db.QueryRowContext(ctx, query,

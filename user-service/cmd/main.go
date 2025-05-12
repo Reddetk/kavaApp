@@ -4,30 +4,28 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
-	_ "net/http"
-	_ "os"
-	_ "os/signal"
-	_ "syscall"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/google/uuid"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // Postgres driver
 
 	"user-service/config"
-	_ "user-service/internal/application"
+	"user-service/internal/application"
 	"user-service/internal/infrastructure/postgres"
-	_ "user-service/internal/infrastructure/services"
+	"user-service/internal/infrastructure/services"
 
-	// httpInterface "user-service/internal/interfaces/http"
-	_ "user-service/internal/interfaces/http/handlers"
-	_ "user-service/internal/interfaces/kafka"
+	httpInterface "user-service/internal/interfaces/http"
+	"user-service/internal/interfaces/http/handlers"
+	"user-service/internal/interfaces/kafka"
 	"user-service/pkg/logger"
 )
 
 func main() {
-	//	Загрузка конфигурации из файла config.yaml
+	// Загрузка конфигурации из файла config.yaml
 	cfg, err := config.LoadConfig("config/config.yaml")
 	if err != nil {
 		log.Fatalf("Ошибка загрузки конфигурации: %v", err)
@@ -40,103 +38,132 @@ func main() {
 	// Инициализация базы данных
 	db, err := sql.Open("postgres", cfg.Database.DSN)
 	if err != nil {
+		logg.Error("Failed to connect to database", "error", err)
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
-	userRepo := postgres.NewUserRepository(db)
-	// Создаем контекст с таймаутом в 5 секунд
+
+	// Проверка соединения с базой данных
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Преобразуем строку в UUID
-	userID, err := uuid.Parse("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15")
-	if err != nil {
-		logg.Error("Ошибка при парсинге UUID:", err)
-		return
+	if err := db.PingContext(ctx); err != nil {
+		logg.Error("Failed to ping database", "error", err)
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+	logg.Info("Successfully connected to database")
+
+	// Настройка пула соединений
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	db.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetimeMinutes) * time.Minute)
+
+	// Инициализация репозиториев
+	userRepo := postgres.NewUserRepository(db)
+	transactionRepo := postgres.NewTransactionRepository(db)
+	segmentRepo := postgres.NewSegmentRepository(db)
+	metricsRepo := postgres.NewUserMetricsRepository(db)
+
+	// Проверка соединения с репозиториями
+	if err := userRepo.Ping(context.Background()); err != nil {
+		logg.Error("Failed to ping user repository", "error", err)
+		log.Fatalf("Failed to ping user repository: %v", err)
+	}
+	logg.Info("User repository connection test passed")
+
+	// Инициализация сервисов
+	segmentationSvc := services.NewKMeansSegmentation(cfg.Segmentation.RFMClustering.Clusters)
+	survivalSvc := services.NewCoxSurvivalAnalysis()
+	transitionSvc := services.NewMarkovTransitionService()
+	clvSvc := services.NewDiscountedCLVService()
+	logg.Info("Services initialized successfully")
+
+	// Инициализация use cases
+	userService := application.NewUserService(userRepo, metricsRepo)
+	retentionService := application.NewRetentionService(userRepo, metricsRepo, survivalSvc, transitionSvc)
+	clvService := application.NewCLVService(userRepo, metricsRepo, clvSvc, retentionService)
+	segmentationService := application.NewSegmentationService(userRepo, segmentRepo, metricsRepo, transactionRepo, segmentationSvc)
+	logg.Info("Application services initialized successfully")
+
+	// Инициализация handlers
+	userHandler := handlers.NewUserHandler(userService)
+	segmentHandler := handlers.NewSegmentHandler(segmentationService)
+	clvHandler := handlers.NewCLVHandler(clvService)
+	retentionHandler := handlers.NewRetentionHandler(retentionService)
+	logg.Info("HTTP handlers initialized successfully")
+
+	// Инициализация HTTP роутера
+	router := httpInterface.SetupRouter(userHandler, segmentHandler, clvHandler, retentionHandler)
+	logg.Info("HTTP router setup completed")
+
+	// Инициализация Kafka consumer
+	kafkaBrokers := cfg.Kafka.Brokers
+	if len(kafkaBrokers) == 0 {
+		kafkaBrokers = []string{"localhost:9092"}
 	}
 
-	// Получаем пользователя по ID
-	user, err := userRepo.Get(ctx, userID)
-	if err != nil {
-		logg.Error("Ошибка при получении пользователя:", err)
-		return
+	transactionConsumer := kafka.NewTransactionConsumer(
+		kafkaBrokers,
+		cfg.Kafka.Topic,
+		userService,
+		retentionService,
+	)
+	logg.Info("Kafka consumer initialized", "brokers", kafkaBrokers, "topic", cfg.Kafka.Topic)
+
+	// Запуск Kafka consumer в горутине
+	go func() {
+		logg.Info("Starting Kafka consumer")
+		if err := transactionConsumer.Start(context.Background()); err != nil {
+			logg.Error("Failed to start Kafka consumer", "error", err)
+			log.Fatalf("Failed to start Kafka consumer: %v", err)
+		}
+	}()
+
+	// Запуск HTTP сервера
+	serverAddr := cfg.Server.Address
+	if serverAddr == "" {
+		serverAddr = ":8080"
 	}
 
-	// Проверяем, найден ли пользователь
-	if user == nil {
-		logg.Info("Пользователь с ID a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15 не найден")
-		return
+	srv := &http.Server{
+		Addr:         serverAddr,
+		Handler:      router,
+		ReadTimeout:  time.Duration(cfg.Server.ReadTimeoutSeconds) * time.Second,
+		WriteTimeout: time.Duration(cfg.Server.WriteTimeoutSeconds) * time.Second,
+		IdleTimeout:  time.Duration(cfg.Server.IdleTimeoutSeconds) * time.Second,
 	}
 
-	// Выводим информацию о пользователе
-	logg.Info("Информация о пользователе:")
-	logg.Info(fmt.Sprintf("ID: %s", user.ID))
-	logg.Info(fmt.Sprintf("Email: %s", user.Email))
-	logg.Info(fmt.Sprintf("Телефон: %s", user.Phone))
-	logg.Info(fmt.Sprintf("Возраст: %d", user.Age))
-	logg.Info(fmt.Sprintf("Пол: %s", user.Gender))
-	logg.Info(fmt.Sprintf("Город: %s", user.City))
-	logg.Info(fmt.Sprintf("Дата регистрации: %s", user.RegistrationDate.Format(time.RFC3339)))
-	logg.Info(fmt.Sprintf("Последняя активность: %s", user.LastActivity.Format(time.RFC3339)))
-
-	// transactionRepo := postgres.NewTransactionRepository(db)
-	// segmentRepo := postgres.NewSegmentRepository(db)
-	// metricsRepo := postgres.NewUserMetricsRepository(db)
-
-	// // Инициализация сервисов
-	// segmentationSvc := services.NewKMeansSegmentation()
-	// survivalSvc := services.NewCoxSurvivalAnalysis()
-	// transitionSvc := services.NewMarkovTransitionService()
-	// clvSvc := services.NewDiscountedCLVService()
-
-	// // Инициализация use cases
-	// userService := application.NewUserService(userRepo, metricsRepo)
-	// segmentationService := application.NewSegmentationService(userRepo, segmentRepo, metricsRepo, transactionRepo, segmentationSvc)
-	// retentionService := application.NewRetentionService(userRepo, metricsRepo, survivalSvc, transitionSvc)
-	// clvService := application.NewCLVService(userRepo, metricsRepo, clvSvc, retentionService)
-
-	// // Инициализация handlers
-	// userHandler := handlers.NewUserHandler(userService)
-	// segmentHandler := handlers.NewSegmentHandler(segmentationService)
-
-	// // Инициализация HTTP роутера
-	// router := httpInterface.SetupRouter(userHandler, segmentHandler)
-
-	// // Инициализация Kafka consumer
-	// transactionConsumer := kafka.NewTransactionConsumer([]string{"localhost:9092"}, "transactions", userService, retentionService)
-
-	// // Запуск Kafka consumer в горутине
-	// go func() {
-	// 	if err := transactionConsumer.Start(context.Background()); err != nil {
-	// 		log.Fatalf("Failed to start Kafka consumer: %v", err)
-	// 	}
-	// }()
-
-	// // Запуск HTTP сервера
-	// srv := &http.Server{
-	// 	Addr:    ":8080",
-	// 	Handler: router,
-	// }
-
-	// go func() {
-	// 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-	// 		log.Fatalf("Failed to start server: %v", err)
-	// 	}
-	// }()
+	go func() {
+		logg.Info("Starting HTTP server", "address", serverAddr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logg.Error("Failed to start server", "error", err)
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
 
 	// Graceful shutdown
-	// quit := make(chan os.Signal, 1)
-	// signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	// <-quit
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
 
-	// log.Println("Shutting down server...")
+	logg.Info("Shutting down server...")
 
-	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// defer cancel()
+	// Создаем контекст с таймаутом для graceful shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
 
-	// if err := srv.Shutdown(ctx); err != nil {
-	// 	log.Fatalf("Server forced to shutdown: %v", err)
-	// }
+	// Сначала останавли��аем Kafka consumer
+	if err := transactionConsumer.Stop(shutdownCtx); err != nil {
+		logg.Error("Failed to stop Kafka consumer", "error", err)
+	} else {
+		logg.Info("Kafka consumer stopped successfully")
+	}
 
-	// log.Println("Server exited properly")
+	// Затем останавливаем HTTP сервер
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logg.Error("Server forced to shutdown", "error", err)
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	logg.Info("Server exited properly")
 }

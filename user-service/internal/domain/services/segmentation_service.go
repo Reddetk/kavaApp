@@ -10,5 +10,5 @@ import (
 type SegmentationService interface {
 	PerformRFMClustering(users []entities.UserMetrics) ([]entities.Segment, error)
 	PerformBehaviorClustering(transactions []entities.Transaction) ([]entities.Segment, error)
-	AssignUserToSegment(userID uuid.UUID, metrics entities.UserMetrics) (entities.Segment, error)
+	AssignUserToSegment(userID uuid.UUID, metrics entities.UserMetrics, segments []entities.Segment) (entities.Segment, error)
 }

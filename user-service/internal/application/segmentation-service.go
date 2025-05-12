@@ -41,16 +41,11 @@ func NewSegmentationService(
 	mr repositories.UserMetricsRepository,
 	tr repositories.TransactionRepository,
 	ss services.SegmentationService,
-	config SegmentationConfig,
 ) *SegmentationService {
-	// Set default batch size if not provided
-	if config.BatchSize <= 0 {
-		config.BatchSize = 100 // Default batch size
-	}
-
-	// Set default segmentation type if not provided
-	if config.DefaultSegmentType == "" {
-		config.DefaultSegmentType = SegmentationTypeRFM
+	// Create default config
+	config := SegmentationConfig{
+		BatchSize:          100, // Default batch size
+		DefaultSegmentType: SegmentationTypeRFM,
 	}
 
 	return &SegmentationService{
@@ -159,7 +154,7 @@ func (s *SegmentationService) PerformRFMSegmentation(ctx context.Context) error 
 			}
 
 			// Use the domain service to determine the appropriate segment
-			segment, err := s.segmentationSvc.AssignUserToSegment(user.ID, *metrics)
+			segment, err := s.segmentationSvc.AssignUserToSegment(user.ID, *metrics, segments)
 			if err != nil {
 				continue
 			}
@@ -282,7 +277,7 @@ func (s *SegmentationService) PerformBehaviorSegmentation(ctx context.Context) e
 			}
 
 			// Use the domain service to determine the appropriate segment
-			segment, err := s.segmentationSvc.AssignUserToSegment(user.ID, *metrics)
+			segment, err := s.segmentationSvc.AssignUserToSegment(user.ID, *metrics, segments)
 			if err != nil {
 				continue
 			}
@@ -315,8 +310,20 @@ func (s *SegmentationService) AssignUserToSegment(ctx context.Context, userID uu
 		return err
 	}
 
+	// Get all segments
+	segments, err := s.segmentRepo.GetByType(ctx, string(s.config.DefaultSegmentType))
+	if err != nil {
+		return err
+	}
+
+	// Преобразуем []*entities.Segment в []entities.Segment
+	segmentsVal := make([]entities.Segment, len(segments))
+	for i, s := range segments {
+		segmentsVal[i] = *s
+	}
+
 	// Use domain service to determine the appropriate segment
-	segment, err := s.segmentationSvc.AssignUserToSegment(userID, *metrics)
+	segment, err := s.segmentationSvc.AssignUserToSegment(userID, *metrics, segmentsVal)
 	if err != nil {
 		return err
 	}

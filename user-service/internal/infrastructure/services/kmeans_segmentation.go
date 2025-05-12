@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 	"user-service/internal/domain/entities"
+	"user-service/internal/domain/services"
 
 	"github.com/google/uuid"
 )
@@ -18,7 +19,7 @@ type KMeansSegmentation struct {
 }
 
 // NewKMeansSegmentation создает новый экземпляр сервиса сегментации K-means
-func NewKMeansSegmentation(numClusters int) *KMeansSegmentation {
+func NewKMeansSegmentation(numClusters int) services.SegmentationService {
 	return &KMeansSegmentation{
 		numClusters: numClusters,
 		maxIter:     100,  // Максимальное количество итераций

@@ -18,6 +18,11 @@ func NewUserMetricsRepository(db *sql.DB) repositories.UserMetricsRepository {
 	return &UserMetricsRepository{db: db}
 }
 
+// Ping checks if the database connection is alive
+func (r *UserMetricsRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}
+
 // Get retrieves user metrics from the database for a given user ID
 func (r *UserMetricsRepository) Get(ctx context.Context, userID uuid.UUID) (*entities.UserMetrics, error) {
 	// SQL query to select all metrics fields for a specific user
