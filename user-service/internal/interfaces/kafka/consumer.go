@@ -1,4 +1,8 @@
 // internal/interfaces/kafka/consumer.go
+
+//go:build kafka
+// +build kafka
+
 package kafka
 
 import (
@@ -36,7 +40,7 @@ type TransactionConsumer struct {
 
 // NewTransactionConsumer создает новый экземпляр TransactionConsumer
 func NewTransactionConsumer(brokers []string, topic string, groupID string, us *application.UserService,
-	ms *application.RetentionService) *TransactionConsumer {
+	ms *application.RetentionService) MessageConsumer {
 
 	// Настройка Kafka reader
 	reader := kafka.NewReader(kafka.ReaderConfig{
@@ -112,7 +116,7 @@ func (c *TransactionConsumer) Start(ctx context.Context) error {
 			// В данном случае мы коммитим, чтобы не застрять на проблемном сообщении
 		}
 
-		// Подтверждае�� обработку сообщения
+		// Подтверждаем обработку сообщения
 		if err := c.reader.CommitMessages(consumerCtx, message); err != nil {
 			log.Printf("Error committing message: %v", err)
 		}

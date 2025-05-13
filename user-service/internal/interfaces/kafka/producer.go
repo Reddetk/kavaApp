@@ -1,4 +1,8 @@
 // internal/interfaces/kafka/producer.go
+
+//go:build kafka
+// +build kafka
+
 package kafka
 
 import (
@@ -17,7 +21,7 @@ type Producer struct {
 }
 
 // NewProducer создает новый экземпляр Producer
-func NewProducer(brokers []string, topic string) *Producer {
+func NewProducer(brokers []string, topic string) MessageProducer {
 	// Настройка Kafka writer
 	writer := &kafka.Writer{
 		Addr:         kafka.TCP(brokers...),

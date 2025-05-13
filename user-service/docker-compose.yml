@@ -8,22 +8,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_BROKERS=localhost:9092
       - KAFKA_TOPIC=user-events
       - KAFKA_GROUP_ID=user-service-group
       - APP_PORT=8080
       - APP_ENV=development
       - LOG_LEVEL=info
-      - DB_HOST=postgres
+      - DB_HOST=localhost
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=user_service
       - DB_SSL_MODE=disable
-    depends_on:
-      - kafka
-      - zookeeper
-      - postgres
+    # depends_on:
+    #   - kafka
+    #   - zookeeper
+    #   - postgres
     networks:
       - app-network
     restart: unless-stopped
