@@ -17,9 +17,9 @@ database:
 
 kafka:
   brokers:
-    - ${KAFKA_BROKERS:-kafka:9092}
-  topic: ${KAFKA_TOPIC:-user-events}
-  group_id: ${KAFKA_GROUP_ID:-user-service-group}
+    - ${KAFKA_BROKERS}
+  topic: ${KAFKA_TOPIC}
+  group_id: ${KAFKA_GROUP_ID}
   connection:
     timeout: 10s
     retry:

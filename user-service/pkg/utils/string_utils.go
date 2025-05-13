@@ -55,7 +55,7 @@ func IsValidPhone(phone string) bool {
 	return PhoneRegex.MatchString(phone)
 }
 
-// FormatPhone форматирует телефонный номер в стандартный формат +375(XXX)XXX-XX-XX
+// FormatPhone форматирует телефонный номер в стандартный формат +375(XX)XXX-XX-XX
 func FormatPhone(phone string) string {
 	// Удаляем все нецифровые символы
 	digits := strings.Map(func(r rune) rune {
@@ -78,15 +78,15 @@ func FormatPhone(phone string) string {
 	if length == 12 && strings.HasPrefix(digits, "375") {
 		// Международный формат с кодом Беларуси: 375XXXXXXXXX
 		countryCode = "375"
-		areaCode = digits[3:6]
-		prefix = digits[6:9]
-		lineNumber = digits[9:12]
+		areaCode = digits[3:5]
+		prefix = digits[5:8]
+		lineNumber = digits[8:12]
 	} else if length == 11 && digits[0] == '8' {
-		// Формат с 8: 89XXXXXXXXX (для России)
+		// Формат с 8: 8XXXXXXXXXX (для России)
 		countryCode = "8"
-		areaCode = digits[1:4]
-		prefix = digits[4:7]
-		lineNumber = digits[7:11]
+		areaCode = digits[1:3]
+		prefix = digits[3:6]
+		lineNumber = digits[6:11]
 	} else if length == 11 && strings.HasPrefix(digits, "375") {
 		// Сокращенный международный формат: 375XXXXXXXX
 		countryCode = "375"
@@ -94,32 +94,20 @@ func FormatPhone(phone string) string {
 		prefix = digits[5:8]
 		lineNumber = digits[8:11]
 	} else if length == 10 {
-		// Формат с оператором: 9XXXXXXXXX (для России)
-		countryCode = "7" // Используем 7 по умолчанию для России
-		areaCode = digits[0:3]
-		prefix = digits[3:6]
-		lineNumber = digits[6:10]
+		// Другой формат без кода страны: XXXXXXXXXX
+		countryCode = "375"
+		areaCode = digits[0:2]
+		prefix = digits[2:5]
+		lineNumber = digits[5:10]
 	} else if length == 9 {
-		// Формат без кода страны: XXXXXXXXX (для Беларуси)
+		// Формат без кода страны: XXXXXXXXX
 		countryCode = "375"
 		areaCode = digits[0:2]
 		prefix = digits[2:5]
 		lineNumber = digits[5:9]
 	} else {
-		// Для других случаев пытаемся определить формат
-		if strings.HasPrefix(digits, "375") {
-			countryCode = "375"
-			restDigits := digits[3:]
-			if len(restDigits) >= 9 {
-				areaCode = restDigits[0:3]
-				prefix = restDigits[3:6]
-				lineNumber = restDigits[6:9]
-			} else {
-				return fmt.Sprintf("+%s(%s)%s-%s-%s", countryCode, areaCode, prefix, lineNumber[:2], lineNumber[2:])
-			}
-		} else {
-			return fmt.Sprintf("+%s(%s)%s-%s-%s", countryCode, areaCode, prefix, lineNumber[:2], lineNumber[2:])
-		}
+		// Для других случаев возвращаем исходный номер
+		return phone
 	}
 
 	return fmt.Sprintf("+%s(%s)%s-%s-%s", countryCode, areaCode, prefix, lineNumber[:2], lineNumber[2:])

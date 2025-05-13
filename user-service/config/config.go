@@ -28,6 +28,11 @@ func LoadConfig(path string) (*Config, error) {
 
 	// Expand environment variables in the DSN string from the YAML file.
 	cfg.Database.DSN = os.ExpandEnv(cfg.Database.DSN)
+	cfg.Kafka.GroupID = os.ExpandEnv(cfg.Kafka.GroupID)
+	for i := range cfg.Kafka.Brokers {
+		cfg.Kafka.Brokers[i] = os.ExpandEnv(cfg.Kafka.Brokers[i])
+	}
+	cfg.Kafka.Topic = os.ExpandEnv(cfg.Kafka.Topic)
 	return &cfg, nil
 }
 
