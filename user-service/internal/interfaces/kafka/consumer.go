@@ -35,14 +35,14 @@ type TransactionConsumer struct {
 }
 
 // NewTransactionConsumer создает новый экземпляр TransactionConsumer
-func NewTransactionConsumer(brokers []string, topic string, us *application.UserService,
+func NewTransactionConsumer(brokers []string, topic string, groupID string, us *application.UserService,
 	ms *application.RetentionService) *TransactionConsumer {
 
 	// Настройка Kafka reader
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        brokers,
 		Topic:          topic,
-		GroupID:        "user-service",
+		GroupID:        groupID,
 		MinBytes:       10e3, // 10KB
 		MaxBytes:       10e6, // 10MB
 		MaxWait:        1 * time.Second,
@@ -50,6 +50,11 @@ func NewTransactionConsumer(brokers []string, topic string, us *application.User
 		CommitInterval: 1 * time.Second,
 		ReadBackoffMin: 100 * time.Millisecond,
 		ReadBackoffMax: 1 * time.Second,
+		// Добавляем диалер с таймаутом для предотвращения бесконечного ожидания
+		Dialer: &kafka.Dialer{
+			Timeout:   10 * time.Second,
+			DualStack: true, // Поддержка IPv4 и IPv6
+		},
 	})
 
 	return &TransactionConsumer{

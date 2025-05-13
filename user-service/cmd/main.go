@@ -105,6 +105,7 @@ func main() {
 	transactionConsumer := kafka.NewTransactionConsumer(
 		kafkaBrokers,
 		cfg.Kafka.Topic,
+		cfg.Kafka.GroupID,
 		userService,
 		retentionService,
 	)

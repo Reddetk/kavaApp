@@ -17,9 +17,26 @@ database:
 
 kafka:
   brokers:
-    - "localhost:9092"
-  topic: "transactions"
-  group_id: "user-service"
+    - ${KAFKA_BROKERS:-kafka:9092}
+  topic: ${KAFKA_TOPIC:-user-events}
+  group_id: ${KAFKA_GROUP_ID:-user-service-group}
+  connection:
+    timeout: 10s
+    retry:
+      max_attempts: 5
+      backoff: 1s
+  consumer:
+    fetch_min: 1
+    fetch_default: 1MB
+    fetch_max: 10MB
+    max_wait_time: 500ms
+    min_bytes: 1
+    max_bytes: 10MB
+  producer:
+    acks: all
+    timeout: 10s
+    compression: snappy
+    max_message_bytes: 1MB
 
 data_preprocessing:
   data_cleaner:

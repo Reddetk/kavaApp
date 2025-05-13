@@ -1,14 +1,40 @@
-# Ignore environment files
-.env
-.env.local
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Ignore log files
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Environment variables
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Log files
 *.log
 
-# Ignore build and generated files
-dist/
-build/
+# Build directory
+/bin/
+/dist/
 
-# Ignore IDE configurations
-.vscode/
-.idea/
+# macOS specific
+.DS_Store
+
+# Windows specific
+Thumbs.db
