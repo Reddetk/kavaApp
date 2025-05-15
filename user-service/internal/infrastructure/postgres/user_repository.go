@@ -23,7 +23,7 @@ func (r *UserRepository) Ping(ctx context.Context) error {
 }
 
 func (r *UserRepository) Create(ctx context.Context, user *entities.User) error {
-	query := `INSERT INTO users (email, phone, age, gender, city) VALUES ($1, $2, $3, $4, $5) RETURNING id, registration_date, last_activity`
+	query := `INSERT INTO public.users (email, phone, age, gender, city) VALUES ($1, $2, $3, $4, $5) RETURNING id, registration_date, last_activity`
 	return r.db.QueryRowContext(ctx, query,
 		user.Email,
 		user.Phone,
@@ -34,7 +34,7 @@ func (r *UserRepository) Create(ctx context.Context, user *entities.User) error 
 }
 
 func (r *UserRepository) Get(ctx context.Context, id uuid.UUID) (*entities.User, error) {
-	query := `SELECT id, email, phone, age, gender, city, registration_date, last_activity FROM users WHERE id = $1`
+	query := `SELECT id, email, phone, age, gender, city, registration_date, last_activity FROM public.users WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 	var user entities.User
 	if err := row.Scan(
@@ -56,7 +56,7 @@ func (r *UserRepository) Get(ctx context.Context, id uuid.UUID) (*entities.User,
 }
 
 func (r *UserRepository) Update(ctx context.Context, user *entities.User) error {
-	query := `UPDATE users SET email = $1, phone = $2, age = $3, gender = $4, city = $5, last_activity = NOW() WHERE id = $6`
+	query := `UPDATE public.users SET email = $1, phone = $2, age = $3, gender = $4, city = $5, last_activity = NOW() WHERE id = $6`
 	_, err := r.db.ExecContext(ctx, query,
 		user.Email,
 		user.Phone,
@@ -69,13 +69,13 @@ func (r *UserRepository) Update(ctx context.Context, user *entities.User) error 
 }
 
 func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM users WHERE id = $1`
+	query := `DELETE FROM public.users WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, query, id)
 	return err
 }
 
 func (r *UserRepository) List(ctx context.Context, limit int, offset int) ([]*entities.User, error) {
-	query := `SELECT id, email, phone, age, gender, city, registration_date, last_activity FROM users ORDER BY registration_date DESC LIMIT $1 OFFSET $2`
+	query := `SELECT id, email, phone, age, gender, city, registration_date, last_activity FROM public.users ORDER BY registration_date DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err

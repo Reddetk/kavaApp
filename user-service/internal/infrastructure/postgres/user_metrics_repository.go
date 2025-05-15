@@ -28,7 +28,7 @@ func (r *UserMetricsRepository) Get(ctx context.Context, userID uuid.UUID) (*ent
 	// SQL query to select all metrics fields for a specific user
 	query := `
         SELECT user_id, recency, frequency, monetary, tbp, avg_check, last_segment_id
-        FROM user_metrics
+        FROM public.user_metrics
         WHERE user_id = $1`
 
 	// Initialize metrics struct to store the result
@@ -59,7 +59,7 @@ func (r *UserMetricsRepository) Get(ctx context.Context, userID uuid.UUID) (*ent
 
 func (r *UserMetricsRepository) Create(ctx context.Context, metrics *entities.UserMetrics) error {
 	query := `
-        INSERT INTO user_metrics (
+        INSERT INTO public.user_metrics (
             user_id, recency, frequency, monetary, tbp, avg_check, last_segment_id
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
@@ -78,7 +78,7 @@ func (r *UserMetricsRepository) Create(ctx context.Context, metrics *entities.Us
 
 func (r *UserMetricsRepository) Update(ctx context.Context, metrics *entities.UserMetrics) error {
 	query := `
-        INSERT INTO user_metrics (
+        INSERT INTO public.user_metrics (
             user_id, recency, frequency, monetary, tbp, avg_check, last_segment_id
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (user_id) DO UPDATE SET
@@ -113,7 +113,7 @@ func (r *UserMetricsRepository) CalculateMetrics(ctx context.Context, userID uui
 	// Calculate recency (days since last purchase)
 	recencyQuery := `
         SELECT EXTRACT(DAY FROM NOW() - MAX(timestamp))::int
-        FROM transactions
+        FROM public.transactions
         WHERE user_id = $1`
 
 	var recency int
@@ -125,7 +125,7 @@ func (r *UserMetricsRepository) CalculateMetrics(ctx context.Context, userID uui
 	// Calculate frequency (total number of purchases)
 	frequencyQuery := `
         SELECT COUNT(*)
-        FROM transactions
+        FROM public.transactions
         WHERE user_id = $1`
 
 	var frequency int
@@ -137,7 +137,7 @@ func (r *UserMetricsRepository) CalculateMetrics(ctx context.Context, userID uui
 	// Calculate monetary (total amount spent)
 	monetaryQuery := `
         SELECT COALESCE(SUM(amount), 0)
-        FROM transactions
+        FROM public.transactions
         WHERE user_id = $1`
 
 	var monetary float64
@@ -151,7 +151,7 @@ func (r *UserMetricsRepository) CalculateMetrics(ctx context.Context, userID uui
         WITH purchase_dates AS (
             SELECT timestamp,
                    LAG(timestamp) OVER (ORDER BY timestamp) as prev_timestamp
-            FROM transactions
+            FROM public.transactions
             WHERE user_id = $1
             ORDER BY timestamp
         )
@@ -171,7 +171,7 @@ func (r *UserMetricsRepository) CalculateMetrics(ctx context.Context, userID uui
 	// Calculate average check
 	avgCheckQuery := `
         SELECT COALESCE(AVG(amount), 0)
-        FROM transactions
+        FROM public.transactions
         WHERE user_id = $1`
 
 	var avgCheck float64
@@ -183,7 +183,7 @@ func (r *UserMetricsRepository) CalculateMetrics(ctx context.Context, userID uui
 	// Get last segment ID
 	lastSegmentQuery := `
         SELECT COALESCE(last_segment_id, '00000000-0000-0000-0000-000000000000'::uuid)
-        FROM user_metrics
+        FROM public.user_metrics
         WHERE user_id = $1`
 
 	var lastSegmentID uuid.UUID

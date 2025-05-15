@@ -26,7 +26,7 @@ func (r *TransactionRepository) Ping(ctx context.Context) error {
 // GetByPeriod implements repositories.TransactionRepository.
 func (r *TransactionRepository) GetByPeriod(ctx context.Context, start time.Time, end time.Time) ([]*entities.Transaction, error) {
 	query := `SELECT id, user_id, amount, timestamp, category, discount_applied 
-			  FROM transactions 
+			  FROM public.transactions 
 			  WHERE timestamp BETWEEN $1 AND $2
 			  ORDER BY timestamp DESC`
 
@@ -50,7 +50,7 @@ func (r *TransactionRepository) GetByPeriod(ctx context.Context, start time.Time
 // GetByUserID implements repositories.TransactionRepository.
 func (r *TransactionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Transaction, error) {
 	query := `SELECT id, user_id, amount, timestamp, category, discount_applied 
-			  FROM transactions 
+			  FROM public.transactions 
 			  WHERE user_id = $1
 			  ORDER BY timestamp DESC`
 
@@ -72,14 +72,14 @@ func (r *TransactionRepository) GetByUserID(ctx context.Context, userID uuid.UUI
 }
 
 func (r *TransactionRepository) Create(ctx context.Context, t *entities.Transaction) error {
-	query := `INSERT INTO transactions (id, user_id, amount, timestamp, category, discount_applied)
+	query := `INSERT INTO public.transactions (id, user_id, amount, timestamp, category, discount_applied)
 				VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err := r.db.ExecContext(ctx, query, t.ID, t.UserID, t.Amount, t.Timestamp, t.Category, t.DiscountApplied)
 	return err
 }
 
 func (r *TransactionRepository) Get(ctx context.Context, id uuid.UUID) (*entities.Transaction, error) {
-	query := `SELECT id, user_id, amount, timestamp, category, discount_applied FROM transactions WHERE id = $1`
+	query := `SELECT id, user_id, amount, timestamp, category, discount_applied FROM public.transactions WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var t entities.Transaction
@@ -93,19 +93,19 @@ func (r *TransactionRepository) Get(ctx context.Context, id uuid.UUID) (*entitie
 }
 
 func (r *TransactionRepository) Update(ctx context.Context, t *entities.Transaction) error {
-	query := `UPDATE transactions SET user_id = $1, amount = $2, timestamp = $3, category = $4, discount_applied = $5 WHERE id = $6`
+	query := `UPDATE public.transactions SET user_id = $1, amount = $2, timestamp = $3, category = $4, discount_applied = $5 WHERE id = $6`
 	_, err := r.db.ExecContext(ctx, query, t.UserID, t.Amount, t.Timestamp, t.Category, t.DiscountApplied, t.ID)
 	return err
 }
 
 func (r *TransactionRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM transactions WHERE id = $1`
+	query := `DELETE FROM public.transactions WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, query, id)
 	return err
 }
 
 func (r *TransactionRepository) List(ctx context.Context, limit, offset int) ([]*entities.Transaction, error) {
-	query := `SELECT id, user_id, amount, timestamp, category, discount_applied FROM transactions ORDER BY timestamp DESC LIMIT $1 OFFSET $2`
+	query := `SELECT id, user_id, amount, timestamp, category, discount_applied FROM public.transactions ORDER BY timestamp DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err

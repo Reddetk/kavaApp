@@ -1,3 +1,4 @@
+// user-service/internal/infrastructure/postgres/segment_repository.go
 package postgres
 
 import (
@@ -28,15 +29,16 @@ func (r *SegmentRepository) Create(ctx context.Context, s *entities.Segment) err
 		return err
 	}
 
-	query := `INSERT INTO segments (id, name, type, algorithm, centroid_data, created_at)
+	query := `INSERT INTO public.user_segments (id, name, type, algorithm, centroid_data, created_at)
               VALUES ($1, $2, $3, $4, $5, $6)`
 	_, err = r.db.ExecContext(ctx, query, s.ID, s.Name, s.Type, s.Algorithm, centroidData, s.CreatedAt)
 	return err
 }
 
 func (r *SegmentRepository) Get(ctx context.Context, id uuid.UUID) (*entities.Segment, error) {
-	query := `SELECT id, name, type, algorithm, centroid_data, created_at 
-              FROM segments WHERE id = $1`
+	query := `SELECT id, name, type, algorithm, centroid_data, created_at
+              FROM public.user_segments 
+              WHERE id = $1`
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var s entities.Segment
@@ -61,7 +63,7 @@ func (r *SegmentRepository) Update(ctx context.Context, s *entities.Segment) err
 		return err
 	}
 
-	query := `UPDATE segments 
+	query := `UPDATE public.user_segments 
               SET name = $1, type = $2, algorithm = $3, centroid_data = $4
               WHERE id = $5`
 	_, err = r.db.ExecContext(ctx, query, s.Name, s.Type, s.Algorithm, centroidData, s.ID)
@@ -70,7 +72,7 @@ func (r *SegmentRepository) Update(ctx context.Context, s *entities.Segment) err
 
 func (r *SegmentRepository) GetByType(ctx context.Context, segmentType string) ([]*entities.Segment, error) {
 	query := `SELECT id, name, type, algorithm, centroid_data, created_at
-              FROM segments 
+              FROM public.user_segments 
               WHERE type = $1
               ORDER BY created_at DESC`
 

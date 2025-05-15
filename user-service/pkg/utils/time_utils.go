@@ -50,32 +50,32 @@ func DaysBetween(start, end time.Time) int {
 	// Нормализуем даты, убирая время
 	startDate := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
-	
+
 	return int(math.Round(endDate.Sub(startDate).Hours() / 24))
 }
 
 // MonthsBetween возвращает приблизительное количество месяцев между двумя датами
 func MonthsBetween(start, end time.Time) int {
 	// Количество месяцев = (год_конца - год_начала) * 12 + (месяц_конца - месяц_начала)
-	months := (end.Year() - start.Year()) * 12 + int(end.Month()) - int(start.Month())
-	
+	months := (end.Year()-start.Year())*12 + int(end.Month()) - int(start.Month())
+
 	// Корректировка, если конечный день меньше начального
 	if end.Day() < start.Day() {
 		months--
 	}
-	
+
 	return months
 }
 
 // YearsBetween возвращает приблизительное количество лет между двумя датами
 func YearsBetween(start, end time.Time) int {
 	years := end.Year() - start.Year()
-	
+
 	// Корректировка, если конечный месяц и день меньше начальных
 	if end.Month() < start.Month() || (end.Month() == start.Month() && end.Day() < start.Day()) {
 		years--
 	}
-	
+
 	return years
 }
 
@@ -106,7 +106,7 @@ func FormatDuration(d time.Duration) string {
 	hours := int(math.Mod(d.Hours(), 24))
 	minutes := int(math.Mod(d.Minutes(), 60))
 	seconds := int(math.Mod(d.Seconds(), 60))
-	
+
 	if days > 0 {
 		return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, seconds)
 	} else if hours > 0 {
@@ -126,29 +126,34 @@ func IsWeekend(t time.Time) bool {
 // AddBusinessDays добавляет указанное количество рабочих дней к дате
 func AddBusinessDays(t time.Time, days int) time.Time {
 	result := t
-	
+
 	for i := 0; i < days; {
 		result = result.AddDate(0, 0, 1)
 		if !IsWeekend(result) {
 			i++
 		}
 	}
-	
+
 	return result
+}
+
+// FormatDays converts time.Duration to float64 days value
+func FormatDays(timeEstimate time.Duration) float64 {
+	return timeEstimate.Hours() / 24
 }
 
 // TimeAgo возвращает строку, описывающую, сколько времени прошло с указанной даты
 func TimeAgo(t time.Time) string {
 	now := time.Now()
 	duration := now.Sub(t)
-	
+
 	seconds := int(duration.Seconds())
 	minutes := int(duration.Minutes())
 	hours := int(duration.Hours())
 	days := int(hours / 24)
 	months := int(days / 30)
 	years := int(days / 365)
-	
+
 	if years > 0 {
 		if years == 1 {
 			return "1 год назад"
