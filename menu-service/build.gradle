@@ -1,39 +1,73 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.5'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version '2.7.18'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 repositories {
     mavenCentral()
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "com.fasterxml.jackson:jackson-bom:2.15.3"
+        mavenBom "org.springframework.boot:spring-boot-dependencies:2.7.18"
+    }
+}
+
 dependencies {
-    // Spring Boot Web
+    // Spring Boot dependencies
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
-    // Spring Data JPA (PostgreSQL)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    runtimeOnly 'org.postgresql:postgresql'
-
-    // Redis (включает Spring Cache)
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
-    // OpenAPI (Swagger)
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+    // Database
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'com.h2database:h2'
+
+    // Java EE / Jakarta EE (for Spring Boot 2.7.x)
+    implementation 'javax.persistence:javax.persistence-api:2.2'
+    implementation 'javax.annotation:javax.annotation-api:1.3.2'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+
+    // Hibernate implementation
+    implementation 'org.hibernate:hibernate-core:5.6.15.Final'
+
+    // Jackson dependencies (updated to fix vulnerability WS-2022-0468)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // UUID support
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    // OpenAPI (Swagger)
+    implementation 'org.springdoc:springdoc-openapi-ui:1.6.15'
 
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
+    // Mockito
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.mockito:mockito-junit-jupiter'
-    testImplementation 'com.h2database:h2'
+
+    // Hamcrest for tests
+    testImplementation 'org.hamcrest:hamcrest'
+    testImplementation 'org.hamcrest:hamcrest-library'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
 }

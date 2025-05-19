@@ -1,6 +1,6 @@
 package com.kava.menu.model;
 
-import jakarta.persistence.*;
+import javax.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,18 +14,18 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Category {
-    
+
     @Id
     private UUID id;
-    
+
     @Column(nullable = false)
     private String name;
-    
+
     private String description;
-    
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

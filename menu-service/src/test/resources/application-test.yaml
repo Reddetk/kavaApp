@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password: 
+    url: ${TEST_DB_URL:jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${TEST_DB_USERNAME:sa}
+    password: ${TEST_DB_PASSWORD:}
     driver-class-name: org.h2.Driver
   jpa:
     hibernate:
@@ -21,7 +21,7 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 springdoc:
   api-docs:
@@ -29,3 +29,19 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
+
+# Disable external service calls in tests
+services:
+  analytics:
+    url: mock://analytics-service
+  user:
+    url: mock://user-service
+  discount-engine:
+    url: mock://discount-engine
+
+# Logging configuration for tests
+logging:
+  level:
+    root: ERROR
+    com.kava.menu: DEBUG
+    org.hibernate.SQL: DEBUG

@@ -1,36 +1,42 @@
 # Menu Service
 
 ## Overview
-Menu Service is a microservice responsible for dynamically generating personalized menus and promotional offers based on customer metrics and preference analysis. It's a core component of the Kava application ecosystem, providing tailored product recommendations and pricing strategies.
+The Menu Service is a microservice for dynamic personalized menu generation within the Kava application ecosystem. It provides RESTful APIs for managing menu items, categories, products, and promotions, with support for personalization based on user segments and geolocation.
 
 ## Purpose
 The primary goal of this service is to enhance the customer experience by delivering personalized menu options and promotions that are relevant to each user's preferences, location, and behavior patterns.
 
 ## Features
-- 🛍️ **Personalized Menu Generation**: Creates customized menus based on user segments
-- 🔖 **Dynamic Discount Management**: Applies intelligent pricing strategies based on demand elasticity
-- 📍 **Geo-targeted Promotions**: Delivers location-specific offers and recommendations
-- 🧠 **Caching Strategy**: Implements Redis-based caching with stale-while-revalidate approach
-- 📘 **API Documentation**: Provides OpenAPI documentation for seamless integration
+- **Personalized Menu Generation**: Creates customized menus based on user segments
+- **Dynamic Pricing**: Applies intelligent pricing strategies based on demand elasticity
+- **Geo-targeted Promotions**: Delivers location-specific offers and recommendations
+- **Price History Tracking**: Maintains historical record of price changes
+- **Caching Strategy**: Implements Redis-based caching for performance optimization
+- **API Documentation**: Provides OpenAPI documentation for seamless integration
 
 ## Architecture
 
-### Input Data
-- 📊 Recommendations from analytics-service (associated products, lift factors)
-- 💰 Product margin data
-- 📍 User geolocation (for local promotions)
-- 📦 Categories and products from database
+The service follows a layered architecture:
 
-### Output Data
-- 🛍️ Personalized menu based on user segment
-- 🔖 List of products with dynamic discounts
-- 📘 OpenAPI documentation for integration with discount-engine and pwa-client
+- **Controllers**: Handle HTTP requests and responses
+- **Services**: Implement business logic
+- **Repositories**: Manage data access
+- **Models**: Represent domain entities
+
+### Technology Stack
+
+- **Framework**: Spring Boot 2.7.x
+- **Database**: PostgreSQL
+- **Cache**: Redis
+- **Documentation**: SpringDoc OpenAPI
+- **Build Tool**: Gradle
 
 ### Algorithms and Methods
-- 📈 **Elasticity of Demand**: For price adjustments based on discount response
-- 🧠 **Redis Caching**: Using stale-while-revalidate strategy for performance
-- 🔁 **Geo-filtering**: Location-based filtering at query level
-- 🧾 **OpenAPI Generation**: Using springdoc-openapi for API documentation
+
+- **Elasticity of Demand**: For price adjustments based on discount response
+- **Redis Caching**: For performance optimization
+- **Geo-filtering**: Location-based filtering using Haversine formula
+- **OpenAPI Generation**: Using springdoc-openapi for API documentation
 
 ## Project Structure
 ```
@@ -58,48 +64,167 @@ menu-service/
 ## Core Components
 
 ### Models
-- **Product**: Represents menu items with pricing information
 - **Category**: Organizes products into logical groups
+- **Product**: Represents menu items with pricing information
+- **PriceHistory**: Tracks product price changes over time
 - **Promotion**: Defines discount offers and their validity periods
-- **GeoLocation**: Stores location data for geo-targeting
-- **PersonalizedMenu**: Aggregates recommended products and promotions
-- **PricingInfo**: Contains dynamic pricing calculations
+- **GeoPromotion**: Stores location data for geo-targeting
+- **Segment**: Defines customer segments for personalization
+- **PersonalizedMenu**: Represents a menu tailored to a specific segment
+- **PersonalizedMenuItem**: Items within a personalized menu
 
 ### Services
-- **MenuService**: Coordinates menu generation
-- **PricingService**: Calculates dynamic prices based on elasticity
-- **PromotionService**: Manages active promotions
-- **GeoTargetingService**: Handles location-based filtering
-- **RecommendationAdapterService**: Interfaces with analytics for recommendations
-- **MenuAssembler**: Combines various components into a cohesive menu
+- **CategoryService**: Business logic for category management
+- **ProductService**: Business logic for product management
+- **PricingService**: Handles price calculations and dynamic pricing
+- **PersonalizedMenuService**: Generates personalized menus based on user segments
+- **PromotionService**: Manages promotional offers
+- **GeoPromotionService**: Handles location-based promotions
 
 ### Controllers
-- **MenuController**: Exposes endpoints for personalized menus
-- **AdminCatalogController**: Provides administrative functions for catalog management
+- **CategoryController**: Manages product categories
+- **MenuController**: Handles personalized menu generation and retrieval
+- **ProductController**: Manages product catalog
+- **PromotionController**: Handles promotional offers and discounts
+- **GeoPromotionController**: Manages location-based promotions
+
+## API Endpoints
+
+### Categories
+```
+GET    /api/categories
+GET    /api/categories/{id}
+POST   /api/categories
+PUT    /api/categories/{id}
+DELETE /api/categories/{id}
+```
+
+### Products
+```
+GET    /api/products
+GET    /api/products/active
+GET    /api/products/{id}
+GET    /api/products/category/{categoryId}
+POST   /api/products
+PUT    /api/products/{id}
+PUT    /api/products/{id}/price
+PUT    /api/products/{id}/activate
+PUT    /api/products/{id}/deactivate
+DELETE /api/products/{id}
+```
+
+### Menus
+```
+GET    /api/menus
+GET    /api/menus/{id}
+GET    /api/menus/segment/{segmentId}
+GET    /api/menus/segment/{segmentId}/latest
+POST   /api/menus/generate
+DELETE /api/menus/{id}
+```
+
+### Promotions
+```
+GET    /api/promotions
+GET    /api/promotions/active
+GET    /api/promotions/{id}
+POST   /api/promotions
+PUT    /api/promotions/{id}
+PUT    /api/promotions/{id}/activate
+PUT    /api/promotions/{id}/deactivate
+DELETE /api/promotions/{id}
+```
+
+### Geo-Promotions
+```
+GET    /api/geo-promotions
+GET    /api/geo-promotions/{id}
+GET    /api/geo-promotions/promotion/{promotionId}
+GET    /api/geo-promotions/region/{regionCode}
+GET    /api/geo-promotions/city/{city}
+GET    /api/geo-promotions/near
+POST   /api/geo-promotions
+PUT    /api/geo-promotions/{id}
+DELETE /api/geo-promotions/{id}
+```
 
 ## Integration Points
-| Service | Connection Type | Description |
-|---------|----------------|-------------|
-| analytics-service | REST | Receives recommendations and lift factors |
-| user-service | REST | Obtains customer segment information |
-| discount-engine | REST | Shares promotional product lists and discount response metrics |
-| pwa-client | REST/WS | Delivers personalized menus to the frontend |
-| Redis | Cache | Implements caching strategy |
 
-## Metrics and Models
-| Metric | Usage in Menu Service |
-|--------|----------------------|
-| Customer Segmentation | Determines menu categories by segment |
-| Price Elasticity of Demand | Adjusts discounts based on customer sensitivity |
-| GeoAffinity | Offers promotions by proximity |
-| Redemption Rate | Analyzes menu success through discount-engine feedback |
+The Menu Service integrates with:
+
+1. **Analytics Service**: For menu view events and popularity metrics
+2. **User Service**: For user segment information and preferences
+3. **Discount Engine**: For personalized discounts and promotion eligibility
+
+## Database Schema
+
+The service uses the following database tables:
+
+- `categories`: Product categories
+- `products`: Menu items
+- `price_history`: Historical price changes
+- `promotions`: Promotional offers
+- `geo_promotions`: Location-based promotions
+- `segments`: Customer segments
+- `personalized_menus`: Generated menus
+- `personalized_menu_items`: Items within personalized menus
+
+## Key Features
+
+### Dynamic Pricing
+
+The service implements dynamic pricing based on:
+- Price elasticity
+- User segment
+- Time of day
+- Historical purchase data
+
+### Personalization
+
+Menus are personalized based on:
+- User segment (demographics, behavior)
+- Location
+- Purchase history
+- Time of day
+
+### Geo-Targeting
+
+The service supports location-based promotions:
+- Region/state-specific promotions
+- City-specific promotions
+- Radius-based promotions (using Haversine formula)
+
+## Configuration
+
+The service is configured via environment variables or application properties:
+
+### Database Configuration
+```properties
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:menu}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:postgres}
+```
+
+### Redis Configuration
+```properties
+spring.redis.host=${REDIS_HOST:localhost}
+spring.redis.port=${REDIS_PORT:6379}
+spring.redis.password=${REDIS_PASSWORD:}
+```
+
+### Server Configuration
+```properties
+server.port=${SERVER_PORT:8080}
+spring.profiles.active=${ACTIVE_PROFILE:dev}
+```
 
 ## Getting Started
 
 ### Prerequisites
-- Java 17 or higher
-- Gradle
-- Redis server
+- JDK 8 or higher
+- PostgreSQL 12 or higher
+- Redis 6 or higher
+- Gradle 7 or higher
 
 ### Installation
 1. Clone the repository
@@ -119,13 +244,21 @@ http://localhost:8080/swagger-ui.html
 
 ## Development
 
+### Testing
+```bash
+./gradlew test
+```
+
 ### Key Dependencies
 - Spring Boot Web
+- Spring Data JPA
 - Spring Data Redis
+- PostgreSQL Driver
 - SpringDoc OpenAPI
 - Lombok
 
 ### Future Enhancements
-- Integration with PostgreSQL for persistent storage
-- Implementation of A/B testing for menu layouts
-- Enhanced analytics integration for real-time recommendation updates
+- Machine learning integration for predictive pricing
+- Enhanced personalization based on dietary preferences
+- A/B testing framework for menu layouts
+- Advanced analytics for revenue optimization

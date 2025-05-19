@@ -12,14 +12,14 @@ import java.util.UUID;
 
 @Repository
 public interface GeoPromotionRepository extends JpaRepository<GeoPromotion, UUID> {
-    
+
     List<GeoPromotion> findByPromotion(Promotion promotion);
-    
+
     List<GeoPromotion> findByRegionCode(String regionCode);
-    
+
     List<GeoPromotion> findByCity(String city);
-    
-    @Query(value = "SELECT g FROM GeoPromotion g WHERE " +
-            "6371 * acos(cos(radians(:latitude)) * cos(radians(g.latitude)) * cos(radians(g.longitude) - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(g.latitude))) <= g.radiusKm")
+
+    @Query(value = "SELECT * FROM geo_promotion g WHERE " +
+            "6371 * acos(cos(radians(:latitude)) * cos(radians(g.latitude)) * cos(radians(g.longitude) - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(g.latitude))) <= g.radius_km", nativeQuery = true)
     List<GeoPromotion> findPromotionsNearLocation(BigDecimal latitude, BigDecimal longitude);
 }
