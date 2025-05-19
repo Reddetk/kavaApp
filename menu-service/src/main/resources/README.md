@@ -1,7 +1,7 @@
 # Menu Service Resources
 
 This directory contains configuration files and resources for the Menu Service application.
-
+   
 ## Configuration Files
 
 ### `application.yaml`
