@@ -172,32 +172,6 @@ The interfaces layer handles external communications:
   - Multiple scenario analysis (default, optimistic, pessimistic)
   - Historical CLV tracking
 
-## API Endpoints
-
-The service exposes RESTful endpoints:
-
-- **User Management**:
-  - `GET /api/v1/users/:id`: Get user profile
-  - `POST /api/v1/users/`: Create user
-  - `PUT /api/v1/users/:id`: Update user
-
-- **Segment Operations**:
-  - `POST /api/v1/segments/rfm`: Perform RFM segmentation
-  - `POST /api/v1/segments/behavior`: Perform behavioral segmentation
-  - `GET /api/v1/segments/`: Get all segments by type
-  - `GET /api/v1/segments/:id`: Get segment by ID
-  - `GET /api/v1/segments/user/:id`: Get user's segment
-
-- **Retention Analysis**:
-  - `GET /api/v1/retention/:id/churn`: Get churn probability
-  - `GET /api/v1/retention/:id/time`: Predict time to event
-
-- **CLV Calculation**:
-  - `GET /api/v1/clv/:id`: Calculate user CLV
-  - `POST /api/v1/clv/update`: Batch update CLV
-  - `GET /api/v1/clv/:id/estimate`: Estimate CLV with scenario
-  - `GET /api/v1/clv/:id/history`: Get historical CLV data
-
 ## Event Processing
 
 The service consumes transaction events via Kafka to:
