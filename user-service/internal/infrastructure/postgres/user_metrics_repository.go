@@ -61,7 +61,7 @@ func (r *UserMetricsRepository) Create(ctx context.Context, metrics *entities.Us
 	query := `
         INSERT INTO public.user_metrics (
             user_id, recency, frequency, monetary, tbp, avg_check, last_segment_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+        ) VALUES ($1, $2, $3, $4, $5, $6, NULL)`
 
 	_, err := r.db.ExecContext(ctx, query,
 		metrics.UserID,
@@ -70,7 +70,6 @@ func (r *UserMetricsRepository) Create(ctx context.Context, metrics *entities.Us
 		metrics.Monetary,
 		metrics.TBP,
 		metrics.AvgCheck,
-		metrics.LastSegmentID,
 	)
 
 	return err

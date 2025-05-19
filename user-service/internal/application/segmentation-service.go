@@ -14,7 +14,7 @@ import (
 type SegmentationType string
 
 const (
-	SegmentationTypeRFM      SegmentationType = "rfm"
+	SegmentationTypeRFM      SegmentationType = "RFM"
 	SegmentationTypeBehavior SegmentationType = "behavior"
 )
 
@@ -44,8 +44,8 @@ func NewSegmentationService(
 ) *SegmentationService {
 	// Create default config
 	config := SegmentationConfig{
-		BatchSize:          100, // Default batch size
-		DefaultSegmentType: SegmentationTypeRFM,
+		BatchSize:          100,                 // Default batch size
+		DefaultSegmentType: SegmentationTypeRFM, // Используем RFM в верхнем регистре
 	}
 
 	return &SegmentationService{
@@ -79,7 +79,7 @@ func (s *SegmentationService) PerformRFMSegmentation(ctx context.Context) error 
 		// Collect metrics for each user
 		for _, user := range users {
 			metrics, err := s.metricsRepo.Get(ctx, user.ID)
-			if err != nil {
+			if err != nil || metrics == nil {
 				// Log error but continue with other users
 				continue
 			}
@@ -93,6 +93,11 @@ func (s *SegmentationService) PerformRFMSegmentation(ctx context.Context) error 
 		if len(users) < s.config.BatchSize {
 			break
 		}
+	}
+
+	// Проверяем, что у нас есть метрики для сегментации
+	if len(allUserMetrics) == 0 {
+		return errors.New("no user metrics found for segmentation")
 	}
 
 	// Perform RFM clustering on all collected metrics
@@ -149,7 +154,7 @@ func (s *SegmentationService) PerformRFMSegmentation(ctx context.Context) error 
 		// Assign each user to their segment
 		for _, user := range users {
 			metrics, err := s.metricsRepo.Get(ctx, user.ID)
-			if err != nil {
+			if err != nil || metrics == nil {
 				continue
 			}
 
@@ -206,7 +211,9 @@ func (s *SegmentationService) PerformBehaviorSegmentation(ctx context.Context) e
 			}
 
 			for _, t := range transactions {
-				allTransactions = append(allTransactions, *t)
+				if t != nil {
+					allTransactions = append(allTransactions, *t)
+				}
 			}
 		}
 
@@ -217,6 +224,11 @@ func (s *SegmentationService) PerformBehaviorSegmentation(ctx context.Context) e
 		if len(users) < s.config.BatchSize {
 			break
 		}
+	}
+
+	// Проверяем, что у нас есть транзакции для сегментации
+	if len(allTransactions) == 0 {
+		return errors.New("no transactions found for segmentation")
 	}
 
 	// Perform behavior clustering on all collected transactions
@@ -272,7 +284,7 @@ func (s *SegmentationService) PerformBehaviorSegmentation(ctx context.Context) e
 		// Assign each user to their segment
 		for _, user := range users {
 			metrics, err := s.metricsRepo.Get(ctx, user.ID)
-			if err != nil {
+			if err != nil || metrics == nil {
 				continue
 			}
 
@@ -310,10 +322,18 @@ func (s *SegmentationService) AssignUserToSegment(ctx context.Context, userID uu
 		return err
 	}
 
+	if metrics == nil {
+		return errors.New("user metrics not found")
+	}
+
 	// Get all segments
 	segments, err := s.segmentRepo.GetByType(ctx, string(s.config.DefaultSegmentType))
 	if err != nil {
 		return err
+	}
+
+	if len(segments) == 0 {
+		return errors.New("no segments found")
 	}
 
 	// Преобразуем []*entities.Segment в []entities.Segment
@@ -339,6 +359,10 @@ func (s *SegmentationService) GetUserSegment(ctx context.Context, userID uuid.UU
 	metrics, err := s.metricsRepo.Get(ctx, userID)
 	if err != nil {
 		return nil, err
+	}
+
+	if metrics == nil {
+		return nil, errors.New("user metrics not found")
 	}
 
 	// If user has no segment assigned

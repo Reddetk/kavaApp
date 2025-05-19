@@ -3,6 +3,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"user-service/internal/domain/entities"
 	"user-service/internal/domain/repositories"
 
@@ -30,13 +31,30 @@ func (s *UserService) GetUser(ctx context.Context, id uuid.UUID) (*entities.User
 }
 
 func (s *UserService) CreateUser(ctx context.Context, user *entities.User) error {
+	// Проверяем, существует ли пользователь с таким email
+	exists, err := s.userRepo.ExistsByEmail(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("email already exists")
+	}
+
+	// Генерируем UUID для нового пользователя
+	user.ID = uuid.New()
+
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return err
 	}
 
-	// Create initial metrics for new user
+	// Create initial metrics for new user with default values
 	metrics := &entities.UserMetrics{
-		UserID: user.ID,
+		UserID:    user.ID,
+		Recency:   0,
+		Frequency: 0,
+		Monetary:  0,
+		TBP:       0,
+		AvgCheck:  0,
 	}
 	if err := s.metricsRepo.Create(ctx, metrics); err != nil {
 		return err

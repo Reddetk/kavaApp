@@ -22,15 +22,32 @@ func (r *UserRepository) Ping(ctx context.Context) error {
 	return r.db.PingContext(ctx)
 }
 
+func (r *UserRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM public.users WHERE email = $1)`
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, email).Scan(&exists)
+	return exists, err
+}
+
 func (r *UserRepository) Create(ctx context.Context, user *entities.User) error {
-	query := `INSERT INTO public.users (email, phone, age, gender, city) VALUES ($1, $2, $3, $4, $5) RETURNING id, registration_date, last_activity`
+	// Проверяем, существует ли пользователь с таким email
+	exists, err := r.ExistsByEmail(ctx, user.Email)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return sql.ErrNoRows // Используем стандартную ошибку для индикации, что запись уже существует
+	}
+
+	query := `INSERT INTO public.users (id, email, phone, age, gender, city) VALUES ($1, $2, $3, $4, $5, $6) RETURNING registration_date, last_activity`
 	return r.db.QueryRowContext(ctx, query,
+		user.ID,
 		user.Email,
 		user.Phone,
 		user.Age,
 		user.Gender,
 		user.City,
-	).Scan(&user.ID, &user.RegistrationDate, &user.LastActivity)
+	).Scan(&user.RegistrationDate, &user.LastActivity)
 }
 
 func (r *UserRepository) Get(ctx context.Context, id uuid.UUID) (*entities.User, error) {

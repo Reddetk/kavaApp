@@ -15,4 +15,5 @@ type UserRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, limit, offset int) ([]*entities.User, error)
 	Ping(ctx context.Context) error
+	ExistsByEmail(ctx context.Context, email string) (bool, error)
 }

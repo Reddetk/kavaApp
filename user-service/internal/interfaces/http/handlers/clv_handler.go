@@ -55,10 +55,18 @@ func (h *CLVHandler) BatchUpdateCLV(c *gin.Context) {
 		BatchSize int `json:"batch_size"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil || req.BatchSize <= 0 {
-		h.logg.Info("Invalid batch size input")
-		c.JSON(400, gin.H{"error": "batch_size must be a positive integer"})
-		return
+	// Устанавливаем значение по умолчанию, если JSON не предоставлен
+	req.BatchSize = 100
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Если JSON не предоставлен или некорректен, используем значение по умолчанию
+		h.logg.Info("Using default batch size: 100")
+	}
+
+	// Проверяем, что batch_size положительный
+	if req.BatchSize <= 0 {
+		h.logg.Info("Invalid batch size input, using default: 100")
+		req.BatchSize = 100
 	}
 
 	err := h.clvService.BatchUpdateCLV(c.Request.Context(), req.BatchSize)

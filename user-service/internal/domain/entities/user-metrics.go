@@ -8,15 +8,19 @@ import (
 )
 
 type UserMetrics struct {
-	UserID        uuid.UUID
-	Recency       int
-	Frequency     int
-	Monetary      float64
-	TBP           float64 // Time Between Purchases
-	AvgCheck      float64
-	LastSegmentID uuid.UUID
-	CLV           float64
-	LastCLVUpdate time.Time
+	UserID             uuid.UUID
+	Recency            int
+	Frequency          int
+	Monetary           float64
+	TBP                float64 // Time Between Purchases
+	AvgCheck           float64
+	LastSegmentID      uuid.UUID
+	CLV                float64
+	LastCLVUpdate      time.Time
+	Age                int
+	AvgSessionDuration float64
+	SessionCount       float64
+	Churned            bool
 }
 
 func (m *UserMetrics) IsValid() bool {
