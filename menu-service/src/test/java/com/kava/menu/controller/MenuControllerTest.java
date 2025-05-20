@@ -1,16 +1,21 @@
 package com.kava.menu.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kava.menu.dto.MenuItemDTO;
 import com.kava.menu.dto.MenuRequestDTO;
+import com.kava.menu.dto.MenuResponseDTO;
 import com.kava.menu.model.PersonalizedMenu;
 import com.kava.menu.model.PersonalizedMenuItem;
+import com.kava.menu.model.Product;
 import com.kava.menu.model.Segment;
 import com.kava.menu.service.PersonalizedMenuService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.MediaType;
@@ -23,6 +28,8 @@ import java.util.*;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
