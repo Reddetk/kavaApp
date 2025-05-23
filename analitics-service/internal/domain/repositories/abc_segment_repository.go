@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"analitics-service/internal/domain/enteties"
+	"analitics-service/internal/domain/entities"
 )
 
 // ABCSegmentRepository определяет интерфейс для работы с сегментацией ABC-анализа

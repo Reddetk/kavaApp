@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	"analitics-service/internal/domain/enteties"
+	"analitics-service/internal/domain/entities"
 )
 
 // DiscountRecommendationRepository определяет интерфейс для работы с рекомендациями по скидкам

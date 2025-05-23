@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"analitics-service/internal/domain/enteties"
+	"analitics-service/internal/domain/entities"
 )
 
 // RetentionMetricsRepository определяет интерфейс для работы с метриками удержания клиентов

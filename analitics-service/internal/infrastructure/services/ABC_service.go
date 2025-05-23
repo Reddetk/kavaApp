@@ -4,20 +4,20 @@ import (
 	"context"
 	"sort"
 
-	"analitics-service/internal/domain/enteties"
-	"analytics-service/internal/domain/repositories"
+	"analitics-service/internal/domain/entities"
+	"analitics-service/internal/domain/repositories"
 )
 
 // ABCAnalysisService предоставляет функционал для ABC-анализа товаров
 type ABCAnalysisService interface {
 	// PerformABCAnalysis выполняет ABC-анализ товаров на основе переданных критериев
-	PerformABCAnalysis(ctx context.Context, criteria ABCAnalysisCriteria) (*ABCAnalysisResult, error)
+	PerformABCAnalysis(ctx context.Context, criteria entities.ABCAnalysisCriteria) (*entities.ABCAnalysisResult, error)
 
 	// GetProductSegmentation возвращает сегментацию продуктов по категориям A, B, C
-	GetProductSegmentation(ctx context.Context, productID string) (*ProductSegmentation, error)
+	GetProductSegmentation(ctx context.Context, productID string) (*entities.ProductSegmentation, error)
 
 	// GetSegmentSummary возвращает сводную информацию по сегментам
-	GetSegmentSummary(ctx context.Context) (*ABCSegmentSummary, error)
+	GetSegmentSummary(ctx context.Context) (*entities.ABCSegmentSummary, error)
 }
 
 // ABCAnalysisServiceImpl реализация сервиса ABC-анализа
@@ -44,7 +44,7 @@ func NewABCAnalysisService(
 }
 
 // PerformABCAnalysis выполняет многокритериальный ABC-анализ товаров
-func (s *ABCAnalysisServiceImpl) PerformABCAnalysis(ctx context.Context, criteria ABCAnalysisCriteria) (*ABCAnalysisResult, error) {
+func (s *ABCAnalysisServiceImpl) PerformABCAnalysis(ctx context.Context, criteria entities.ABCAnalysisCriteria) (*entities.ABCAnalysisResult, error) {
 	// Получаем все продукты
 	products, err := s.productRepo.GetAllProducts(ctx)
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *ABCAnalysisServiceImpl) PerformABCAnalysis(ctx context.Context, criteri
 }
 
 // GetProductSegmentation возвращает информацию о сегментации конкретного продукта
-func (s *ABCAnalysisServiceImpl) GetProductSegmentation(ctx context.Context, productID string) (*ProductSegmentation, error) {
+func (s *ABCAnalysisServiceImpl) GetProductSegmentation(ctx context.Context, productID string) (*entities.ProductSegmentation, error) {
 	// Получаем информацию о сегментации продукта из репозитория
 	segmentation, err := s.abcSegmentRepo.GetProductSegmentation(ctx, productID)
 	if err != nil {
@@ -105,7 +105,7 @@ func (s *ABCAnalysisServiceImpl) GetProductSegmentation(ctx context.Context, pro
 }
 
 // GetSegmentSummary возвращает сводную информацию по сегментам A, B, C
-func (s *ABCAnalysisServiceImpl) GetSegmentSummary(ctx context.Context) (*ABCSegmentSummary, error) {
+func (s *ABCAnalysisServiceImpl) GetSegmentSummary(ctx context.Context) (*entities.ABCSegmentSummary, error) {
 	// Получаем полную информацию о сегментации
 	segmentation, err := s.abcSegmentRepo.GetFullSegmentation(ctx)
 	if err != nil {
@@ -153,8 +153,17 @@ func prepareProductsData(products []entities.Product, sales []entities.Sale, pro
 	return result
 }
 
+// Define the missing types that were previously used without proper imports
+type ProductAnalysisData struct {
+	Product      entities.Product
+	Revenue      float64
+	Quantity     int
+	Profit       float64
+	ProfitMargin float64
+}
+
 // analyzeByRevenue выполняет ABC-анализ по выручке
-func (s *ABCAnalysisServiceImpl) analyzeByRevenue(productsData []ProductAnalysisData, thresholds Thresholds) map[string]string {
+func (s *ABCAnalysisServiceImpl) analyzeByRevenue(productsData []ProductAnalysisData, thresholds entities.Thresholds) map[string]string {
 	// Сортируем продукты по выручке в порядке убывания
 	sort.Slice(productsData, func(i, j int) bool {
 		return productsData[i].Revenue > productsData[j].Revenue
@@ -173,7 +182,7 @@ func (s *ABCAnalysisServiceImpl) analyzeByRevenue(productsData []ProductAnalysis
 }
 
 // analyzeByQuantity выполняет ABC-анализ по количеству продаж
-func (s *ABCAnalysisServiceImpl) analyzeByQuantity(productsData []ProductAnalysisData, thresholds Thresholds) map[string]string {
+func (s *ABCAnalysisServiceImpl) analyzeByQuantity(productsData []ProductAnalysisData, thresholds entities.Thresholds) map[string]string {
 	// Сортируем продукты по количеству продаж в порядке убывания
 	sort.Slice(productsData, func(i, j int) bool {
 		return productsData[i].Quantity > productsData[j].Quantity
@@ -192,7 +201,7 @@ func (s *ABCAnalysisServiceImpl) analyzeByQuantity(productsData []ProductAnalysi
 }
 
 // analyzeByProfit выполняет ABC-анализ по прибыли
-func (s *ABCAnalysisServiceImpl) analyzeByProfit(productsData []ProductAnalysisData, thresholds Thresholds) map[string]string {
+func (s *ABCAnalysisServiceImpl) analyzeByProfit(productsData []ProductAnalysisData, thresholds entities.Thresholds) map[string]string {
 	// Сортируем продукты по прибыли в порядке убывания
 	sort.Slice(productsData, func(i, j int) bool {
 		return productsData[i].Profit > productsData[j].Profit
@@ -211,7 +220,7 @@ func (s *ABCAnalysisServiceImpl) analyzeByProfit(productsData []ProductAnalysisD
 }
 
 // determineSegments определяет сегменты A, B, C на основе кумулятивного процента
-func determineSegments(productsData []ProductAnalysisData, total float64, valueSelector func(ProductAnalysisData) float64, thresholds Thresholds) map[string]string {
+func determineSegments(productsData []ProductAnalysisData, total float64, valueFunc func(ProductAnalysisData) float64, thresholds entities.Thresholds) map[string]string {
 	segments := make(map[string]string)
 	cumulativePercent := 0.0
 
@@ -239,8 +248,8 @@ func (s *ABCAnalysisServiceImpl) combineSegmentations(
 	revenueSegmentation map[string]string,
 	quantitySegmentation map[string]string,
 	profitSegmentation map[string]string,
-	weights CriteriaWeights,
-) map[string]ProductFullSegmentation {
+	weights entities.CriteriaWeights,
+) map[string]entities.ProductFullSegmentation {
 
 	combinedSegmentation := make(map[string]ProductFullSegmentation)
 
@@ -287,7 +296,7 @@ func (s *ABCAnalysisServiceImpl) combineSegmentations(
 }
 
 // calculateSummary рассчитывает сводную информацию по сегментам
-func calculateSummary(segmentation map[string]ProductFullSegmentation) *ABCSegmentSummary {
+func calculateSummary(segmentation map[string]entities.ProductFullSegmentation) *entities.ABCSegmentSummary {
 	summary := &ABCSegmentSummary{
 		SegmentCounts: map[string]int{
 			"A": 0,

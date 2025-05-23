@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"analitics-service/internal/domain/enteties"
+	"analitics-service/internal/domain/entities"
 
 	"github.com/sajari/regression"
 )

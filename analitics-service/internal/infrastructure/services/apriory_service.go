@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"analitics-service/internal/domain/enteties"
-	"analytics-service/pkg/logger"
+	"analitics-service/internal/domain/entities"
+	"analitics-service/pkg/logger"
 
 	apriori "github.com/eMAGTechLabs/go-apriori"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"analitics-service/internal/domain/enteties"
+	"analitics-service/internal/domain/entities"
 )
 
 // ABTestRepository определяет интерфейс для работы с A/B тестами

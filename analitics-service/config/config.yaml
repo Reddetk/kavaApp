@@ -1,0 +1,25 @@
+server:
+  address: ":8081"
+  port: "8081"
+  read_timeout_seconds: 15
+  write_timeout_seconds: 15
+  idle_timeout_seconds: 60
+
+logger:
+  level: "INFO"
+  format: "json"
+
+database:
+  dsn: "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime_minutes: 30
+
+apriori:
+  default_min_support: 0.01
+  default_min_confidence: 0.5
+  max_recommendations: 10
+
+abc_analysis:
+  a_threshold: 0.8
+  b_threshold: 0.95

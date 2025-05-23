@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	"analitics-service/internal/domain/enteties"
+	"analitics-service/internal/domain/entities"
 )
 
 // ProductRepository определяет интерфейс для работы с продуктами
